@@ -19,4 +19,35 @@ model User {
     email        String   @unique
     passwordHash String
     createdAt    DateTime @default(now())
+
+    memberships Membership[]
+}
+
+model Workspace {
+    id        String   @id @default(uuid())
+    name      String
+    createdAt DateTime @default(now())
+
+    memberships Membership[]
+}
+
+model Membership {
+    id          String   @id @default(uuid())
+    userId      String
+    workspaceId String
+    role        Role
+    createdAt   DateTime @default(now())
+
+    user      User      @relation(fields: [userId], references: [id])
+    workspace Workspace @relation(fields: [workspaceId], references: [id])
+
+    @@unique([userId, workspaceId])
+}
+
+enum Role {
+    OWNER
+    ADMIN
+    MANAGER
+    TECHNICIAN
+    VIEWER
 }
