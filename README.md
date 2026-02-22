@@ -45,6 +45,8 @@ This project is intentionally designed to reflect production system design pract
 ---
 
 ## 📂 Project Structure
+
+```
 opscore/
 ├── prisma/
 │ ├── schema.prisma
@@ -61,6 +63,7 @@ opscore/
 ├── .env # Environment variables (not committed)
 ├── package.json
 └── README.md
+```
 
 ---
 
