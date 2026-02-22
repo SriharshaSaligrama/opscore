@@ -45,14 +45,22 @@ This project is intentionally designed to reflect production system design pract
 ---
 
 ## 📂 Project Structure
-src/
-app/
-features/
-lib/
-tests/
-docs/
-prisma/
-
+opscore/
+├── prisma/
+│ ├── schema.prisma
+│ └── migrations/
+│
+├── src/
+│ ├── app/ # Next.js App Router (pages, layouts, API routes)
+│ ├── features/ # Domain-based modules (auth, workspace, work-orders, etc.)
+│ ├── lib/ # Shared utilities (prisma, logger, error handling)
+│ └── tests/ # Unit, integration, and e2e tests
+│
+├── docs/ # Architecture, decisions, setup guides
+│
+├── .env # Environment variables (not committed)
+├── package.json
+└── README.md
 
 ---
 
