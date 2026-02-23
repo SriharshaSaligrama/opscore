@@ -7,8 +7,15 @@ export const authRepository = {
         return prisma.user.findUnique({ where: { email } })
     },
 
-    createUser(data: { email: string; passwordHash: string }) {
+    createUser(data: { name: string; email: string; passwordHash: string }) {
         return prisma.user.create({ data })
+    },
+
+    createSession(data: {
+        userId: string
+        expiresAt: Date
+    }) {
+        return prisma.session.create({ data })
     },
 
     createWorkspace(name: string) {
@@ -21,5 +28,5 @@ export const authRepository = {
         role: Role
     }) {
         return prisma.membership.create({ data })
-    }
+    },
 }

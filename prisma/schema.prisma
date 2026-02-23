@@ -16,11 +16,13 @@ datasource db {
 
 model User {
     id           String   @id @default(uuid())
+    name         String
     email        String   @unique
     passwordHash String
     createdAt    DateTime @default(now())
 
     memberships Membership[]
+    sessions    Session[]
 }
 
 model Workspace {
@@ -29,6 +31,14 @@ model Workspace {
     createdAt DateTime @default(now())
 
     memberships Membership[]
+}
+
+enum Role {
+    OWNER
+    ADMIN
+    MANAGER
+    TECHNICIAN
+    VIEWER
 }
 
 model Membership {
@@ -44,10 +54,11 @@ model Membership {
     @@unique([userId, workspaceId])
 }
 
-enum Role {
-    OWNER
-    ADMIN
-    MANAGER
-    TECHNICIAN
-    VIEWER
+model Session {
+    id        String   @id @default(uuid())
+    userId    String
+    expiresAt DateTime
+    createdAt DateTime @default(now())
+
+    user User @relation(fields: [userId], references: [id])
 }
