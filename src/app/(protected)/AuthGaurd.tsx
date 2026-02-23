@@ -1,5 +1,3 @@
-// src/app/(protected)/auth-gaurd.tsx
-
 import { redirect } from "next/navigation"
 import { getSessionUser } from "@/lib/auth"
 
