@@ -10,7 +10,7 @@
 
 ## 1. Install Dependencies
 
-pnpm install
+```pnpm install```
 
 ---
 
@@ -18,32 +18,32 @@ pnpm install
 
 Create `.env`:
 
-DATABASE_URL="your_neon_connection_string"
+```DATABASE_URL="your_neon_connection_string"```
 
 ---
 
 ## 3. Generate Prisma Client
 
-pnpm prisma generate
+```pnpm prisma generate```
 
 ---
 
 ## 4. Run Migrations
 
-pnpm prisma migrate dev
+```pnpm prisma migrate dev```
 
 ---
 
 ## 5. Run Development Server
 
-pnpm dev
+```pnpm dev```
 
 ---
 
 ## Useful Commands
-
+```
 pnpm prisma studio
 pnpm prisma migrate dev
 pnpm prisma generate
-
+```
 ---
