@@ -31,6 +31,7 @@ model Workspace {
     createdAt DateTime @default(now())
 
     memberships Membership[]
+    sessions    Session[]
 }
 
 enum Role {
@@ -52,13 +53,21 @@ model Membership {
     workspace Workspace @relation(fields: [workspaceId], references: [id])
 
     @@unique([userId, workspaceId])
+    @@index([workspaceId])
+    @@index([userId])
+    @@index([workspaceId, role])
 }
 
 model Session {
-    id        String   @id @default(uuid())
-    userId    String
-    expiresAt DateTime
-    createdAt DateTime @default(now())
+    id                String   @id @default(uuid())
+    userId            String
+    activeWorkspaceId String?
+    expiresAt         DateTime
+    createdAt         DateTime @default(now())
 
-    user User @relation(fields: [userId], references: [id])
+    user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+    activeWorkspace Workspace? @relation(fields: [activeWorkspaceId], references: [id], onDelete: SetNull)
+
+    @@index([userId])
+    @@index([activeWorkspaceId])
 }

@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation"
-import { getSessionUser } from "@/lib/auth"
+import { getCurrentSession } from "@/lib/auth"
 
 export default async function AuthGuard() {
-    const user = await getSessionUser()
+    const session = await getCurrentSession()
 
-    if (!user) {
+    if (!session) {
         redirect("/login")
     }
 

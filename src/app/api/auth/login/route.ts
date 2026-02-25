@@ -1,3 +1,5 @@
+// src/app/api/auth/login/route.ts
+
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { authService } from "@/features/auth/auth.service"
@@ -5,7 +7,7 @@ import { BadRequestError } from "@/lib/errors"
 import { withErrorHandler } from "@/lib/api-handler"
 
 const loginSchema = z.object({
-    email: z.string().email(),
+    email: z.email(),
     password: z.string().min(1)
 })
 
@@ -15,27 +17,24 @@ export const POST = withErrorHandler(async (req: NextRequest) => {
     const parsed = loginSchema.safeParse(body)
 
     if (!parsed.success) {
-        throw new BadRequestError("Invalid login input")
+        throw new BadRequestError(
+            parsed.error.issues.map(issue => issue.message).join(", ")
+        )
     }
 
     const { email, password } = parsed.data
 
-    const { user, session } = await authService.login(email, password)
+    const result = await authService.login(email, password)
 
-    const response = NextResponse.json({
-        user: {
-            id: user.id,
-            name: user.name,
-            email: user.email
-        }
-    })
+    const response = NextResponse.json(result)
 
-    response.cookies.set("sessionId", session.id, {
+    // Set session cookie regardless of branch
+    response.cookies.set("sessionId", result.sessionId, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
         path: "/",
-        expires: session.expiresAt
+        maxAge: 7 * 24 * 60 * 60
     })
 
     return response
