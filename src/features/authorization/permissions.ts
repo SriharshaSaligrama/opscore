@@ -57,3 +57,15 @@ export const RolePermissions: Record<Role, Permission[]> = {
         Permission.VIEW_WORK_ORDER,
     ],
 }
+
+export const RoleHierarchy: Record<Role, number> = {
+    OWNER: 5,
+    ADMIN: 4,
+    MANAGER: 3,
+    TECHNICIAN: 2,
+    VIEWER: 1,
+}
+
+// if (RoleHierarchy[targetRole] >= RoleHierarchy[actorRole]) {
+//     throw new ForbiddenError("Cannot modify equal or higher role")
+// }
