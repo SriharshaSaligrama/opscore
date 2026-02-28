@@ -5,7 +5,7 @@ import { workspaceService } from "@/features/workspace/workspace.service"
 export default async function WorkspaceGuard() {
     const session = await getCurrentSession()
 
-    if (!session) {
+    if (!session || !session.user) {
         redirect("/login")
     }
 

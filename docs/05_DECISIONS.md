@@ -51,3 +51,20 @@ Prevents scope creep.
 Invite tokens stored hashed to:
 - Prevent token leakage risk
 - Follow secure token storage best practices
+
+## Integration Testing Strategy
+
+We use real database integration tests with:
+- Prisma
+- Neon test database
+- TRUNCATE beforeEach
+- fileParallelism disabled in Vitest v4
+
+Rationale:
+- Ensures realistic behavior
+- Validates foreign keys and transactions
+- Avoids mocking Prisma
+
+Tradeoff:
+- Slower than unit tests
+- Requires sequential execution

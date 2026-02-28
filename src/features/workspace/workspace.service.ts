@@ -1,24 +1,15 @@
 import { prisma } from "@/lib/prisma"
-import { UnauthorizedError, ForbiddenError } from "@/lib/errors"
+import { ForbiddenError, NotFoundError } from "@/lib/errors"
+import { authService } from "@/features/auth/auth.service"
 
 export const workspaceService = {
     async selectWorkspace(
         sessionId: string,
         workspaceId: string
-    ): Promise<{ workspaceId: string; workspaceName: string }> {
+    ) {
 
         // 1️⃣ Fetch session
-        const session = await prisma.session.findUnique({
-            where: { id: sessionId }
-        })
-
-        if (!session) {
-            throw new UnauthorizedError("Session not found")
-        }
-
-        if (session.expiresAt < new Date()) {
-            throw new UnauthorizedError("Session expired")
-        }
+        const session = await authService.validateSession(sessionId)
 
         // 2️⃣ Validate membership
         const membership = await prisma.membership.findUnique({
@@ -50,13 +41,7 @@ export const workspaceService = {
     },
 
     async getUserWorkspaces(sessionId: string) {
-        const session = await prisma.session.findUnique({
-            where: { id: sessionId }
-        })
-
-        if (!session || session.expiresAt < new Date()) {
-            throw new UnauthorizedError("Session expired")
-        }
+        const session = await authService.validateSession(sessionId)
 
         const memberships = await prisma.membership.findMany({
             where: { userId: session.userId },
@@ -84,5 +69,20 @@ export const workspaceService = {
         })
 
         return !!membership
+    },
+
+    async getActiveWorkSpaceDetails(workspaceId: string) {
+        const workspace = await prisma.workspace.findUnique({
+            where: { id: workspaceId },
+        })
+
+        if (!workspace) {
+            throw new NotFoundError("Workspace not found")
+        }
+
+        return {
+            id: workspace.id,
+            name: workspace.name
+        }
     }
 }

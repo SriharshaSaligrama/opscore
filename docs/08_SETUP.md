@@ -47,3 +47,16 @@ pnpm prisma migrate dev
 pnpm prisma generate
 ```
 ---
+
+## Testing Environment
+
+- `NODE_ENV=test` is strictly enforced.
+- `DATABASE_URL` must point to the test database.
+- `setup.ts` truncates all tables before each test using `TRUNCATE ... CASCADE`.
+- Vitest configured with:
+  - `fileParallelism: false`
+  - `maxWorkers: 1`
+
+Reason:
+Integration tests use a real PostgreSQL database.  
+Parallel execution can cause deadlocks during TRUNCATE and FK operations.

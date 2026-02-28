@@ -277,3 +277,28 @@ By end of Week 1:
 - Blocking-route error resolved.
 - RBAC foundation established.
 - Clean service-based architecture.
+
+## Week 1 Completion Status
+
+Implemented:
+- AuthService
+- WorkspaceService
+- AuthorizationService
+- Integration test infrastructure
+- Database isolation strategy
+- Sequential test execution
+
+All tests passing.
+
+## Testing Strategy
+
+Testing approach:
+
+- Integration tests using real PostgreSQL (Neon test DB).
+- No mocking of Prisma.
+- Database truncated before each test.
+- Sequential execution enforced to prevent deadlocks.
+
+Why:
+RBAC, foreign keys, and session logic rely on real database constraints.
+Mocking would not validate domain integrity.

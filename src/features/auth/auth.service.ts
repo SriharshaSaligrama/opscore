@@ -9,21 +9,26 @@ type SafeUser = {
     email: string
 }
 
-type LoginResult = {
+type BaseLoginResult = {
+    user: SafeUser
+    sessionId: string
+}
+
+type NoWorkspaceResult = BaseLoginResult & {
     type: "NO_WORKSPACE"
-    user: SafeUser
-    sessionId: string
-} | {
+}
+
+type SingleWorkspaceResult = BaseLoginResult & {
     type: "SINGLE_WORKSPACE"
-    user: SafeUser
-    sessionId: string
     workspaceId: string
-} | {
+}
+
+type MultipleWorkspacesResult = BaseLoginResult & {
     type: "MULTIPLE_WORKSPACES"
-    user: SafeUser
-    sessionId: string
     workspaces: { id: string; name: string }[]
 }
+
+type LoginResult = NoWorkspaceResult | SingleWorkspaceResult | MultipleWorkspacesResult
 
 export const authService = {
     async signup(name: string, email: string, password: string) {
@@ -126,5 +131,25 @@ export const authService = {
                 name: m.workspace.name
             }))
         }
-    }
+    },
+
+    async validateSession(sessionId: string) {
+        const session = await prisma.session.findUnique({
+            where: { id: sessionId }
+        })
+
+        if (!session) {
+            throw new UnauthorizedError("Session not found")
+        }
+
+        if (session.expiresAt < new Date()) {
+            throw new UnauthorizedError("Session expired")
+        }
+
+        if (!session.userId) {
+            throw new UnauthorizedError("Invalid session")
+        }
+
+        return session
+    },
 }

@@ -6,10 +6,12 @@
         "dev": "next dev",
         "build": "next build",
         "start": "next start",
+        "test": "dotenv -e .env.test -- vitest",
+        "test:run": "dotenv -e .env.test -- vitest run",
         "lint": "eslint",
-        "lint:fix": "eslint --fix",
-        "db:migrate": "prisma migrate dev",
-        "db:studio": "prisma studio"
+        "migrate:dev": "dotenv -e .env -- prisma migrate dev",
+        "migrate:prod": "dotenv -e .env.production -- prisma migrate deploy",
+        "migrate:test": "dotenv -e .env.test -- prisma migrate deploy"
     },
     "dependencies": {
         "@prisma/client": "6.15.0",
@@ -23,17 +25,24 @@
     },
     "devDependencies": {
         "@tailwindcss/postcss": "^4",
+        "@testing-library/dom": "^10.4.1",
+        "@testing-library/react": "^16.3.2",
         "@types/bcrypt": "^6.0.0",
         "@types/node": "^20",
         "@types/pg": "^8.16.0",
         "@types/react": "^19",
         "@types/react-dom": "^19",
+        "@vitejs/plugin-react": "^5.1.4",
         "babel-plugin-react-compiler": "^1.0.0",
+        "dotenv-cli": "^11.0.0",
         "eslint": "^9",
         "eslint-config-next": "16.1.6",
+        "jsdom": "^28.1.0",
         "prisma": "6.15.0",
         "tailwindcss": "^4",
         "tsx": "^4.21.0",
-        "typescript": "^5"
+        "typescript": "^5",
+        "vite-tsconfig-paths": "^6.1.1",
+        "vitest": "^4.0.18"
     }
 }
