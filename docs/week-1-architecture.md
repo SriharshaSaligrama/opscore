@@ -278,6 +278,7 @@ By end of Week 1:
 - RBAC foundation established.
 - Clean service-based architecture.
 
+##
 ## Week 1 Completion Status
 
 Implemented:
