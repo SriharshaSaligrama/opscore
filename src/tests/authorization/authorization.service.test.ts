@@ -1,17 +1,17 @@
 import { describe, it, expect } from "vitest"
-import { AuthorizationService } from "@/features/authorization/authorization.service"
-import { createWorkspace } from "../factories/workspace.factory"
-import { createUser, createMembership } from "../factories/user.factory"
+import { authorizationService } from "@/features/authorization/authorization.service"
+import { createWorkspace } from "@/tests/factories/workspace.factory"
+import { createUser, createMembership } from "@/tests/factories/user.factory"
 import { Permission } from "@/features/authorization/permissions"
 
-describe("AuthorizationService", () => {
+describe("authorizationService", () => {
     describe("ensureMembership", () => {
         it("throws if user is not part of workspace", async () => {
             const workspace = await createWorkspace()
             const user = await createUser()
 
             await expect(
-                AuthorizationService.ensureMembership(user.id, workspace.id)
+                authorizationService.ensureMembership(user.id, workspace.id)
             ).rejects.toThrow("Not part of workspace")
         })
 
@@ -21,7 +21,7 @@ describe("AuthorizationService", () => {
 
             await createMembership(user.id, workspace.id, "MANAGER")
 
-            const membership = await AuthorizationService.ensureMembership(
+            const membership = await authorizationService.ensureMembership(
                 user.id,
                 workspace.id
             )
@@ -37,13 +37,13 @@ describe("AuthorizationService", () => {
 
             await createMembership(user.id, workspace.id, "VIEWER")
 
-            const membership = await AuthorizationService.ensureMembership(
+            const membership = await authorizationService.ensureMembership(
                 user.id,
                 workspace.id
             )
 
             expect(() =>
-                AuthorizationService.ensurePermission(
+                authorizationService.ensurePermission(
                     membership,
                     Permission.MANAGE_USERS
                 )

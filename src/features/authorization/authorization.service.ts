@@ -3,17 +3,11 @@ import { prisma } from "@/lib/prisma"
 import { Role } from "@prisma/client"
 import { Permission, RolePermissions } from "./permissions"
 
-export class AuthorizationService {
-    static async ensureMembership(
-        userId: string,
-        workspaceId: string
-    ) {
+export const authorizationService = {
+    async ensureMembership(userId: string, workspaceId: string) {
         const membership = await prisma.membership.findUnique({
             where: {
-                userId_workspaceId: {
-                    userId,
-                    workspaceId
-                }
+                userId_workspaceId: { userId, workspaceId }
             }
         })
 
@@ -26,21 +20,15 @@ export class AuthorizationService {
             workspaceId: membership.workspaceId,
             role: membership.role
         }
-    }
+    },
 
-    static ensureRole(
-        membership: { role: Role },
-        allowedRoles: Role[]
-    ) {
+    ensureRole(membership: { role: Role }, allowedRoles: Role[]) {
         if (!allowedRoles.includes(membership.role)) {
             throw new ForbiddenError("Insufficient permissions")
         }
-    }
+    },
 
-    static ensurePermission(
-        membership: { role: Role },
-        permission: Permission
-    ) {
+    ensurePermission(membership: { role: Role }, permission: Permission) {
         const allowed = RolePermissions[membership.role]?.includes(permission)
 
         if (!allowed) {

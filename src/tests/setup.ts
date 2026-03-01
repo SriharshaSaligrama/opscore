@@ -7,7 +7,8 @@ if (process.env.NODE_ENV !== "test") {
 
 beforeEach(async () => {
     await prisma.$executeRawUnsafe(`
-    TRUNCATE TABLE 
+    TRUNCATE TABLE
+    "AssetCategory", 
     "Membership", 
     "Session", 
     "Workspace",

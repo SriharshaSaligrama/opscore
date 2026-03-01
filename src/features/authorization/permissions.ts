@@ -2,7 +2,11 @@ export enum Permission {
     VIEW_ASSET = "VIEW_ASSET",
     CREATE_ASSET = "CREATE_ASSET",
     UPDATE_ASSET = "UPDATE_ASSET",
-    DELETE_ASSET = "DELETE_ASSET",
+    ARCHIVE_ASSET = "ARCHIVE_ASSET",
+
+    CREATE_CATEGORY = "CREATE_CATEGORY",
+    VIEW_CATEGORY = "VIEW_CATEGORY",
+    ARCHIVE_CATEGORY = "ARCHIVE_CATEGORY",
 
     VIEW_WORK_ORDER = "VIEW_WORK_ORDER",
     CREATE_WORK_ORDER = "CREATE_WORK_ORDER",
@@ -20,7 +24,10 @@ export const RolePermissions: Record<Role, Permission[]> = {
         Permission.VIEW_ASSET,
         Permission.CREATE_ASSET,
         Permission.UPDATE_ASSET,
-        Permission.DELETE_ASSET,
+        Permission.ARCHIVE_ASSET,
+        Permission.VIEW_CATEGORY,
+        Permission.CREATE_CATEGORY,
+        Permission.ARCHIVE_CATEGORY,
         Permission.VIEW_WORK_ORDER,
         Permission.CREATE_WORK_ORDER,
         Permission.UPDATE_WORK_ORDER,
@@ -33,7 +40,10 @@ export const RolePermissions: Record<Role, Permission[]> = {
         Permission.VIEW_ASSET,
         Permission.CREATE_ASSET,
         Permission.UPDATE_ASSET,
-        Permission.DELETE_ASSET,
+        Permission.ARCHIVE_ASSET,
+        Permission.VIEW_CATEGORY,
+        Permission.CREATE_CATEGORY,
+        Permission.ARCHIVE_CATEGORY,
         Permission.VIEW_WORK_ORDER,
         Permission.CREATE_WORK_ORDER,
         Permission.UPDATE_WORK_ORDER,
@@ -41,6 +51,8 @@ export const RolePermissions: Record<Role, Permission[]> = {
     ],
 
     MANAGER: [
+        Permission.VIEW_CATEGORY,
+        Permission.CREATE_CATEGORY,
         Permission.VIEW_ASSET,
         Permission.VIEW_WORK_ORDER,
         Permission.CREATE_WORK_ORDER,
@@ -48,12 +60,15 @@ export const RolePermissions: Record<Role, Permission[]> = {
     ],
 
     TECHNICIAN: [
+        Permission.VIEW_CATEGORY,
+        Permission.VIEW_ASSET,
         Permission.VIEW_WORK_ORDER,
         Permission.UPDATE_WORK_ORDER,
     ],
 
     VIEWER: [
         Permission.VIEW_ASSET,
+        Permission.VIEW_CATEGORY,
         Permission.VIEW_WORK_ORDER,
     ],
 }

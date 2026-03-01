@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest"
 import { prisma } from "@/lib/prisma"
 import { workspaceService } from "@/features/workspace/workspace.service"
-import { createWorkspace } from "../factories/workspace.factory"
-import { createUser, createMembership } from "../factories/user.factory"
+import { createWorkspace } from "@/tests/factories/workspace.factory"
+import { createUser, createMembership } from "@/tests/factories/user.factory"
 import { ForbiddenError, NotFoundError } from "@/lib/errors"
 
 describe("workspaceService.selectWorkspace", () => {

@@ -30,8 +30,9 @@ model Workspace {
     name      String
     createdAt DateTime @default(now())
 
-    memberships Membership[]
-    sessions    Session[]
+    memberships     Membership[]
+    sessions        Session[]
+    assetCategories AssetCategory[]
 }
 
 enum Role {
@@ -70,4 +71,16 @@ model Session {
 
     @@index([userId])
     @@index([activeWorkspaceId])
+}
+
+model AssetCategory {
+    id          String   @id @default(uuid())
+    workspaceId String
+    name        String
+    createdAt   DateTime @default(now())
+
+    workspace Workspace @relation(fields: [workspaceId], references: [id])
+
+    @@unique([workspaceId, name])
+    @@index([workspaceId])
 }

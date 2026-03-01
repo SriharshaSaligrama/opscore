@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest"
 import { prisma } from "@/lib/prisma"
 import { authService } from "@/features/auth/auth.service"
-import { createWorkspace } from "../factories/workspace.factory"
-import { createUser, createMembership } from "../factories/user.factory"
+import { createWorkspace } from "@/tests/factories/workspace.factory"
+import { createUser, createMembership } from "@/tests/factories/user.factory"
 import { UnauthorizedError, ConflictError } from "@/lib/errors"
 
 describe("authService.signup", () => {
