@@ -23,6 +23,7 @@ model User {
 
     memberships Membership[]
     sessions    Session[]
+    assets      Asset[]
 }
 
 model Workspace {
@@ -33,6 +34,7 @@ model Workspace {
     memberships     Membership[]
     sessions        Session[]
     assetCategories AssetCategory[]
+    assets          Asset[]
 }
 
 enum Role {
@@ -80,7 +82,35 @@ model AssetCategory {
     createdAt   DateTime @default(now())
 
     workspace Workspace @relation(fields: [workspaceId], references: [id])
+    assets    Asset[]
 
     @@unique([workspaceId, name])
     @@index([workspaceId])
+}
+
+enum AssetStatus {
+    ACTIVE
+    INACTIVE
+    RETIRED
+}
+
+model Asset {
+    id String @id @default(uuid())
+
+    name   String
+    status AssetStatus @default(ACTIVE)
+
+    workspaceId String
+    categoryId  String
+    createdBy   String
+
+    isDeleted Boolean  @default(false)
+    createdAt DateTime @default(now())
+
+    workspace Workspace     @relation(fields: [workspaceId], references: [id])
+    category  AssetCategory @relation(fields: [categoryId], references: [id])
+    creator   User          @relation(fields: [createdBy], references: [id])
+
+    @@index([workspaceId])
+    @@index([categoryId])
 }
