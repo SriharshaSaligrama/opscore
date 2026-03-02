@@ -1,4 +1,4 @@
-import { beforeEach } from "vitest"
+import { afterAll, beforeEach } from "vitest"
 import { prisma } from "@/lib/prisma"
 
 if (process.env.NODE_ENV !== "test") {
@@ -16,4 +16,8 @@ beforeEach(async () => {
     "User" 
     RESTART IDENTITY CASCADE;
   `)
+})
+
+afterAll(async () => {
+    await prisma.$disconnect()
 })
