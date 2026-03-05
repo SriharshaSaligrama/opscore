@@ -2,6 +2,7 @@ import bcrypt from "bcrypt"
 import { prisma } from "@/lib/prisma"
 import { Role } from "@prisma/client"
 import { ConflictError, UnauthorizedError } from "@/lib/errors"
+import { withTransaction } from "@/lib/transaction"
 
 type SafeUser = {
     id: string
@@ -42,16 +43,16 @@ export const authService = {
 
         const passwordHash = await bcrypt.hash(password, 10)
 
-        return prisma.$transaction(async (tx) => {
-            const user = await tx.user.create({
+        return withTransaction(async (db) => {
+            const user = await db.user.create({
                 data: { name, email, passwordHash }
             })
 
-            const workspace = await tx.workspace.create({
+            const workspace = await db.workspace.create({
                 data: { name: `${name}'s Workspace` }
             })
 
-            await tx.membership.create({
+            await db.membership.create({
                 data: {
                     userId: user.id,
                     workspaceId: workspace.id,

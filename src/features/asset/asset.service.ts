@@ -1,20 +1,16 @@
 import { prisma } from "@/lib/prisma"
-import { authorizationService } from "../authorization/authorization.service"
 import { Permission } from "../authorization/permissions"
 import { ForbiddenError, NotFoundError } from "@/lib/errors"
 import { AssetStatus } from "@prisma/client"
+import { getServiceContext } from "@/lib/service-context"
 
 export const assetService = {
     async createAsset({
         userId, workspaceId, name, categoryId
     }: { userId: string, workspaceId: string, name: string, categoryId: string }) {
-        const membership = await authorizationService.ensureMembership(
+        const ctx = await getServiceContext(
             userId,
-            workspaceId
-        )
-
-        authorizationService.ensurePermission(
-            membership,
+            workspaceId,
             Permission.CREATE_ASSET
         )
 
@@ -34,8 +30,8 @@ export const assetService = {
             data: {
                 name,
                 categoryId,
-                workspaceId,
-                createdBy: userId
+                workspaceId: ctx.membership.workspaceId,
+                createdBy: ctx.membership.userId,
             }
         })
     },
@@ -43,13 +39,10 @@ export const assetService = {
     async listAssets({
         userId, workspaceId
     }: { userId: string, workspaceId: string }) {
-        await authorizationService.ensureMembership(
-            userId,
-            workspaceId
-        )
+        const ctx = await getServiceContext(userId, workspaceId)
 
         return prisma.asset.findMany({
-            where: { workspaceId, isDeleted: false },
+            where: { workspaceId: ctx.membership.workspaceId, isDeleted: false },
             orderBy: { createdAt: "asc" }
         })
     },
@@ -57,13 +50,9 @@ export const assetService = {
     async updateAsset({
         userId, workspaceId, assetId, name, categoryId, status
     }: { userId: string, workspaceId: string, assetId: string, name?: string, categoryId?: string, status?: AssetStatus }) {
-        const membership = await authorizationService.ensureMembership(
+        const ctx = await getServiceContext(
             userId,
-            workspaceId
-        )
-
-        authorizationService.ensurePermission(
-            membership,
+            workspaceId,
             Permission.UPDATE_ASSET
         )
 
@@ -92,7 +81,7 @@ export const assetService = {
                 throw new NotFoundError("Category not found")
             }
 
-            if (category.workspaceId !== workspaceId) {
+            if (category.workspaceId !== ctx.membership.workspaceId) {
                 throw new ForbiddenError("Category does not belong to workspace")
             }
         }
@@ -110,13 +99,9 @@ export const assetService = {
     async archiveAsset({
         userId, workspaceId, assetId
     }: { userId: string, workspaceId: string, assetId: string }) {
-        const membership = await authorizationService.ensureMembership(
+        const ctx = await getServiceContext(
             userId,
-            workspaceId
-        )
-
-        authorizationService.ensurePermission(
-            membership,
+            workspaceId,
             Permission.ARCHIVE_ASSET
         )
 
@@ -128,7 +113,7 @@ export const assetService = {
             throw new NotFoundError("Asset not found")
         }
 
-        if (asset.workspaceId !== workspaceId) {
+        if (asset.workspaceId !== ctx.membership.workspaceId) {
             throw new ForbiddenError("Asset does not belong to workspace")
         }
 

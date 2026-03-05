@@ -1,25 +1,21 @@
-import { authorizationService } from "@/features/authorization/authorization.service"
 import { Permission } from "@/features/authorization/permissions"
 import { prisma } from "@/lib/prisma"
+import { getServiceContext } from "@/lib/service-context"
 
 export const assetCategoryService = {
     async createCategory({
         userId, workspaceId, name
     }: { userId: string, workspaceId: string, name: string }) {
-        const membership = await authorizationService.ensureMembership(
+        const ctx = await getServiceContext(
             userId,
-            workspaceId
-        )
-
-        authorizationService.ensurePermission(
-            membership,
+            workspaceId,
             Permission.CREATE_CATEGORY
         )
 
         return prisma.assetCategory.create({
             data: {
                 name,
-                workspaceId
+                workspaceId: ctx.membership.workspaceId,
             }
         })
     },
@@ -27,13 +23,10 @@ export const assetCategoryService = {
     async listCategories({
         userId, workspaceId
     }: { userId: string, workspaceId: string }) {
-        await authorizationService.ensureMembership(
-            userId,
-            workspaceId
-        )
+        const ctx = await getServiceContext(userId, workspaceId)
 
         return prisma.assetCategory.findMany({
-            where: { workspaceId },
+            where: { workspaceId: ctx.membership.workspaceId },
             orderBy: { createdAt: "asc" }
         })
     }

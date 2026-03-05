@@ -21,9 +21,11 @@ model User {
     passwordHash String
     createdAt    DateTime @default(now())
 
-    memberships Membership[]
-    sessions    Session[]
-    assets      Asset[]
+    memberships        Membership[]
+    sessions           Session[]
+    assets             Asset[]
+    createdWorkOrders  WorkOrder[]  @relation("WorkOrderCreator")
+    assignedWorkOrders WorkOrder[]  @relation("WorkOrderAssignee")
 }
 
 model Workspace {
@@ -35,6 +37,7 @@ model Workspace {
     sessions        Session[]
     assetCategories AssetCategory[]
     assets          Asset[]
+    workOrders      WorkOrder[]
 }
 
 enum Role {
@@ -107,10 +110,58 @@ model Asset {
     isDeleted Boolean  @default(false)
     createdAt DateTime @default(now())
 
-    workspace Workspace     @relation(fields: [workspaceId], references: [id])
-    category  AssetCategory @relation(fields: [categoryId], references: [id])
-    creator   User          @relation(fields: [createdBy], references: [id])
+    workspace  Workspace     @relation(fields: [workspaceId], references: [id])
+    category   AssetCategory @relation(fields: [categoryId], references: [id])
+    creator    User          @relation(fields: [createdBy], references: [id])
+    workOrders WorkOrder[]
 
     @@index([workspaceId])
     @@index([categoryId])
+}
+
+enum WorkOrderStatus {
+    OPEN
+    ASSIGNED
+    IN_PROGRESS
+    COMPLETED
+    CLOSED
+}
+
+enum WorkOrderPriority {
+    LOW
+    MEDIUM
+    HIGH
+    CRITICAL
+}
+
+model WorkOrder {
+    id String @id @default(cuid())
+
+    workspaceId String
+    workspace   Workspace @relation(fields: [workspaceId], references: [id])
+
+    assetId String
+    asset   Asset  @relation(fields: [assetId], references: [id])
+
+    assignedTo String?
+    assignee   User?   @relation("WorkOrderAssignee", fields: [assignedTo], references: [id])
+
+    createdBy String
+    creator   User   @relation("WorkOrderCreator", fields: [createdBy], references: [id])
+
+    status   WorkOrderStatus   @default(OPEN)
+    priority WorkOrderPriority @default(MEDIUM)
+
+    description String?
+
+    isDeleted Boolean @default(false)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([workspaceId])
+    @@index([workspaceId, status])
+    @@index([workspaceId, assetId])
+    @@index([workspaceId, assignedTo])
+    @@index([workspaceId, priority])
 }
