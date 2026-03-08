@@ -32,11 +32,10 @@ function mapActionToEventType(action: WorkOrderAction): DomainEventType {
 
 function mapActionToMessage(
     action: WorkOrderAction,
-    assigneeId?: string
 ): string {
     switch (action) {
         case "assign":
-            return `Assigned to user ${assigneeId}`
+            return "Work order assigned"
         case "start":
             return "Work started"
         case "complete":
@@ -157,7 +156,7 @@ export const workOrderService = {
                 entityId: workOrderId,
                 actorId: ctx.membership.userId,
                 type: mapActionToEventType(action),
-                message: mapActionToMessage(action, assigneeId),
+                message: mapActionToMessage(action),
                 metadata: {
                     action,
                     previousStatus: workOrder.status,

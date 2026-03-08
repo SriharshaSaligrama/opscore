@@ -7,8 +7,7 @@ export async function createUser(
     password = "password",
     name = "Test User"
 ) {
-    const uniqueEmail =
-        email ?? `user-${crypto.randomUUID()}@test.com`
+    const uniqueEmail = email ?? `user-${crypto.randomUUID()}@test.com`
 
     const passwordHash = await bcrypt.hash(password, 10)
 

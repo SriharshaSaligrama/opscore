@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma"
-import { Permission } from "../authorization/permissions"
+import { Permission } from "@/features/authorization/permissions"
 import { ForbiddenError, NotFoundError } from "@/lib/errors"
 import { AssetStatus } from "@prisma/client"
 import { getServiceContext } from "@/lib/service-context"
