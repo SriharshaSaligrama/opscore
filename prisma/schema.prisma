@@ -24,8 +24,9 @@ model User {
     memberships        Membership[]
     sessions           Session[]
     assets             Asset[]
-    createdWorkOrders  WorkOrder[]  @relation("WorkOrderCreator")
-    assignedWorkOrders WorkOrder[]  @relation("WorkOrderAssignee")
+    createdWorkOrders  WorkOrder[]   @relation("WorkOrderCreator")
+    assignedWorkOrders WorkOrder[]   @relation("WorkOrderAssignee")
+    domainEvents       DomainEvent[]
 }
 
 model Workspace {
@@ -38,6 +39,7 @@ model Workspace {
     assetCategories AssetCategory[]
     assets          Asset[]
     workOrders      WorkOrder[]
+    domainEvents    DomainEvent[]
 }
 
 enum Role {
@@ -164,4 +166,32 @@ model WorkOrder {
     @@index([workspaceId, assetId])
     @@index([workspaceId, assignedTo])
     @@index([workspaceId, priority])
+}
+
+enum DomainEntityType {
+    WORK_ORDER
+    ASSET
+}
+
+model DomainEvent {
+    id String @id @default(cuid())
+
+    workspaceId String
+    workspace   Workspace @relation(fields: [workspaceId], references: [id])
+
+    entityType DomainEntityType
+    entityId   String // ID of the entity
+
+    actorId String // user who performed the action
+    actor   User   @relation(fields: [actorId], references: [id])
+
+    type String // event type
+
+    message  String? // optional human-readable text
+    metadata Json? // structured details (optional)
+
+    createdAt DateTime @default(now())
+
+    @@index([workspaceId])
+    @@index([entityType, entityId])
 }

@@ -12,8 +12,41 @@ import {
     executeTransition,
     WorkOrderAction,
 } from "./work-order.state-machine"
+
 import { withTransaction } from "@/lib/transaction"
 import { getServiceContext } from "@/lib/service-context"
+
+import { domainEventService } from "@/features/domain-events/domain-event.service"
+import { DomainEventType } from "@/features/domain-events/domain-event.types"
+import { DomainEntityType } from "@prisma/client"
+
+function mapActionToEventType(action: WorkOrderAction): DomainEventType {
+    switch (action) {
+        case "assign": return DomainEventType.WORK_ORDER_ASSIGNED
+        case "start": return DomainEventType.WORK_ORDER_STARTED
+        case "complete": return DomainEventType.WORK_ORDER_COMPLETED
+        case "close": return DomainEventType.WORK_ORDER_CLOSED
+        default: throw new Error(`Unknown action: ${action}`)
+    }
+}
+
+function mapActionToMessage(
+    action: WorkOrderAction,
+    assigneeId?: string
+): string {
+    switch (action) {
+        case "assign":
+            return `Assigned to user ${assigneeId}`
+        case "start":
+            return "Work started"
+        case "complete":
+            return "Work completed"
+        case "close":
+            return "Work order closed"
+        default:
+            throw new Error(`Unknown action: ${action}`)
+    }
+}
 
 export const workOrderService = {
 
@@ -39,7 +72,7 @@ export const workOrderService = {
 
             await getAssetOrThrow(db, assetId, ctx.membership.workspaceId)
 
-            return db.workOrder.create({
+            const workOrder = await db.workOrder.create({
                 data: {
                     workspaceId: ctx.membership.workspaceId,
                     assetId,
@@ -48,6 +81,18 @@ export const workOrderService = {
                     createdBy: ctx.membership.userId,
                 },
             })
+
+            await domainEventService.record({
+                db,
+                workspaceId: ctx.membership.workspaceId,
+                entityType: DomainEntityType.WORK_ORDER,
+                entityId: workOrder.id,
+                actorId: ctx.membership.userId,
+                type: DomainEventType.WORK_ORDER_CREATED,
+                message: "Work order created",
+            })
+
+            return workOrder
         })
     },
 
@@ -95,7 +140,7 @@ export const workOrderService = {
                 ctx.membership.role
             )
 
-            return db.workOrder.update({
+            const updated = await db.workOrder.update({
                 where: { id: workOrderId },
                 data: {
                     status: nextStatus,
@@ -104,6 +149,24 @@ export const workOrderService = {
                     }),
                 },
             })
+
+            await domainEventService.record({
+                db,
+                workspaceId: ctx.membership.workspaceId,
+                entityType: DomainEntityType.WORK_ORDER,
+                entityId: workOrderId,
+                actorId: ctx.membership.userId,
+                type: mapActionToEventType(action),
+                message: mapActionToMessage(action, assigneeId),
+                metadata: {
+                    action,
+                    previousStatus: workOrder.status,
+                    newStatus: nextStatus,
+                    ...(assigneeId && { assigneeId }),
+                },
+            })
+
+            return updated
         })
     },
 
@@ -154,10 +217,57 @@ export const workOrderService = {
                 return workOrder
             }
 
-            return db.workOrder.update({
+            const updated = await db.workOrder.update({
                 where: { id: workOrderId },
                 data: { isDeleted: true },
             })
+
+            await domainEventService.record({
+                db,
+                workspaceId: ctx.membership.workspaceId,
+                entityType: DomainEntityType.WORK_ORDER,
+                entityId: workOrderId,
+                actorId: ctx.membership.userId,
+                type: DomainEventType.WORK_ORDER_ARCHIVED,
+                message: "Work order archived",
+            })
+
+            return updated
+        })
+    },
+
+    async addComment({
+        userId,
+        workspaceId,
+        workOrderId,
+        message,
+    }: {
+        userId: string
+        workspaceId: string
+        workOrderId: string
+        message: string
+    }) {
+
+        return withTransaction(async (db) => {
+
+            const ctx = await getServiceContext(userId, workspaceId)
+
+            await getWorkOrderOrThrow(
+                db,
+                workOrderId,
+                ctx.membership.workspaceId
+            )
+
+            return domainEventService.record({
+                db,
+                workspaceId: ctx.membership.workspaceId,
+                entityType: DomainEntityType.WORK_ORDER,
+                entityId: workOrderId,
+                actorId: ctx.membership.userId,
+                type: DomainEventType.COMMENT_ADDED,
+                message,
+            })
+
         })
     }
 }
