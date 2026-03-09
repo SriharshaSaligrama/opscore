@@ -171,6 +171,7 @@ model WorkOrder {
 enum DomainEntityType {
     WORK_ORDER
     ASSET
+    MEMBERSHIP
 }
 
 model DomainEvent {

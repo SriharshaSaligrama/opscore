@@ -1,15 +1,11 @@
 import { ForbiddenError } from "@/lib/errors"
-import { prisma } from "@/lib/prisma"
 import { Role } from "@prisma/client"
-import { Permission, RolePermissions } from "./permissions"
+import { Permission, RoleHierarchy, RolePermissions } from "./permissions"
+import { findMembership } from "@/features/membership/membership.repository"
 
 export const authorizationService = {
     async ensureMembership(userId: string, workspaceId: string) {
-        const membership = await prisma.membership.findUnique({
-            where: {
-                userId_workspaceId: { userId, workspaceId }
-            }
-        })
+        const membership = await findMembership(userId, workspaceId)
 
         if (!membership) {
             throw new ForbiddenError("Not part of workspace")
@@ -33,6 +29,20 @@ export const authorizationService = {
 
         if (!allowed) {
             throw new ForbiddenError("Insufficient permission")
+        }
+    },
+
+    ensureCanManageRole(actorRole: Role, targetRole: Role) {
+        const actorRank = RoleHierarchy[actorRole]
+        const targetRank = RoleHierarchy[targetRole]
+
+        // Allow OWNER to manage OWNER (multi-owner rule)
+        if (actorRole === "OWNER" && targetRole === "OWNER") {
+            return
+        }
+
+        if (actorRank <= targetRank) {
+            throw new ForbiddenError("Cannot manage equal or higher role")
         }
     }
 }

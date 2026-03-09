@@ -2,9 +2,9 @@ import { describe, it, expect } from "vitest"
 import { prisma } from "@/lib/prisma"
 import { workOrderService } from "@/features/work-order/work-order.service"
 
-import { createUser } from "../factories/user.factory"
-import { createWorkspaceForUser } from "../factories/workspace.factory"
-import { createAssetForWorkspace } from "../factories/asset.factory"
+import { createUser } from "@/tests/factories/user.factory"
+import { createWorkspaceForUser } from "@/tests/factories/workspace.factory"
+import { createAssetForWorkspace } from "@/tests/factories/asset.factory"
 
 describe("Work Order — Transaction Safety", () => {
     it("rolls back when transition fails", async () => {

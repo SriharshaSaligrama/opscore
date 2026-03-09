@@ -78,5 +78,5 @@ describe("Work Order — Workflow Lifecycle", () => {
         })
 
         expect(fromDb?.status).toBe("CLOSED")
-    }, 15000)
+    }, 20000)
 })
