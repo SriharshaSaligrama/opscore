@@ -73,6 +73,10 @@ export const membershipService = {
 
         authorizationService.ensureCanManageRole(actor.role, target.role)
 
+        if (actor.userId === userId) {
+            throw new ForbiddenError("You cannot remove yourself from the workspace")
+        }
+
         if (target.role === "OWNER") {
             const ownerCount = await countWorkspaceOwners(workspaceId)
             if (ownerCount <= 1) {
@@ -107,6 +111,10 @@ export const membershipService = {
 
         const target = await findMembership(userId, workspaceId)
         if (!target) throw new NotFoundError("Membership not found")
+
+        if (actor.userId === userId) {
+            throw new ForbiddenError("You cannot change your own role")
+        }
 
         authorizationService.ensureCanManageRole(actor.role, target.role)
         authorizationService.ensureCanManageRole(actor.role, role)

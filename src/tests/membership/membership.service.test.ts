@@ -538,3 +538,32 @@ describe("Membership — Audit Logging", () => {
         expect(events[1].type).toBe("MEMBER_ROLE_CHANGED")
     })
 })
+
+describe("Membership — Self Protection Rules", () => {
+    it("prevents user from removing themselves", async () => {
+        const owner = await createUser()
+        const ws = await createWorkspaceForUser(owner.id)
+
+        await expect(
+            membershipService.removeMember({
+                workspaceId: ws.id,
+                userId: owner.id,
+                actorId: owner.id,
+            })
+        ).rejects.toThrow()
+    })
+
+    it("prevents user from changing their own role", async () => {
+        const owner = await createUser()
+        const ws = await createWorkspaceForUser(owner.id)
+
+        await expect(
+            membershipService.changeMemberRole({
+                workspaceId: ws.id,
+                userId: owner.id,
+                role: "ADMIN",
+                actorId: owner.id,
+            })
+        ).rejects.toThrow()
+    })
+})
