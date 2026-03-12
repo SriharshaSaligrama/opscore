@@ -171,9 +171,12 @@ model WorkOrder {
 }
 
 enum DomainEntityType {
-    WORK_ORDER
-    ASSET
+    USER
+    WORKSPACE
     MEMBERSHIP
+    ASSET
+    ASSET_CATEGORY
+    WORK_ORDER
     WORKSPACE_INVITATION
 }
 

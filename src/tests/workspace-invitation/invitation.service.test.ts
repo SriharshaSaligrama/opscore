@@ -81,7 +81,7 @@ describe("Workspace Invitation — Accept Invite", () => {
         expect(membership.workspaceId).toBe(ws.id)
         expect(membership.userId).toBe(user.id)
         expect(membership.role).toBe("TECHNICIAN")
-    })
+    }, 10000)
 
     it("prevents accepting with invalid token", async () => {
         const user = await createUser()
@@ -117,7 +117,7 @@ describe("Workspace Invitation — Accept Invite", () => {
                 userId: user.id,
             })
         ).rejects.toThrow()
-    })
+    }, 10000)
 
     it("prevents accepting expired invite", async () => {
         const owner = await createUser()

@@ -1,6 +1,11 @@
 import { prisma } from "@/lib/prisma"
-import { ForbiddenError, NotFoundError } from "@/lib/errors"
+import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from "@/lib/errors"
+import { getServiceContext } from "@/lib/service-context"
+import { Permission } from "@/features/authorization/permissions"
 import { authService } from "@/features/auth/auth.service"
+import { domainEventService } from "@/features/domain-events/domain-event.service"
+import { DomainEventType } from "@/features/domain-events/domain-event.types"
+import { DomainEntityType } from "@prisma/client"
 
 export const workspaceService = {
     async selectWorkspace(
@@ -84,5 +89,73 @@ export const workspaceService = {
             id: workspace.id,
             name: workspace.name
         }
+    },
+
+    async renameWorkspace({
+        workspaceId,
+        name,
+        actorId
+    }: {
+        workspaceId: string
+        name: string
+        actorId: string
+    }) {
+        const ctx = await getServiceContext(
+            actorId,
+            workspaceId,
+            Permission.MANAGE_WORKSPACE
+        )
+
+        const workspace = await prisma.workspace.findUnique({
+            where: { id: ctx.membership.workspaceId },
+        })
+
+        if (!workspace) {
+            throw new NotFoundError("Workspace not found")
+        }
+
+        if (workspace.name === name) {
+            return workspace
+        }
+
+        const existing = await prisma.workspace.findFirst({
+            where: {
+                name,
+                NOT: { id: workspaceId }
+            }
+        })
+
+        if (existing) {
+            throw new ConflictError("Workspace name already exists")
+        }
+
+        name = name.trim()
+
+        if (!name) {
+            throw new BadRequestError("Workspace name cannot be empty")
+        }
+
+        if (name.length > 120) {
+            throw new BadRequestError("Workspace name too long")
+        }
+
+        const updatedWorkspace = await prisma.workspace.update({
+            where: { id: ctx.membership.workspaceId },
+            data: { name },
+        })
+
+        await domainEventService.record({
+            workspaceId: ctx.membership.workspaceId,
+            entityType: DomainEntityType.WORKSPACE,
+            entityId: ctx.membership.workspaceId,
+            actorId: ctx.membership.userId,
+            type: DomainEventType.WORKSPACE_RENAMED,
+            metadata: {
+                oldName: workspace.name,
+                newName: name
+            },
+        })
+
+        return updatedWorkspace
     }
 }

@@ -1,17 +1,24 @@
 export enum Permission {
+    // Workspace Permissions
+    MANAGE_WORKSPACE = "MANAGE_WORKSPACE",
+
+    // Asset Permissions
     VIEW_ASSET = "VIEW_ASSET",
     CREATE_ASSET = "CREATE_ASSET",
     UPDATE_ASSET = "UPDATE_ASSET",
     ARCHIVE_ASSET = "ARCHIVE_ASSET",
 
+    // Category Permissions
     CREATE_CATEGORY = "CREATE_CATEGORY",
     VIEW_CATEGORY = "VIEW_CATEGORY",
     ARCHIVE_CATEGORY = "ARCHIVE_CATEGORY",
 
+    // Work Order Permissions
     VIEW_WORK_ORDER = "VIEW_WORK_ORDER",
     CREATE_WORK_ORDER = "CREATE_WORK_ORDER",
     UPDATE_WORK_ORDER = "UPDATE_WORK_ORDER",
 
+    // Membership Permissions
     MANAGE_USERS = "MANAGE_USERS", // change roles
     INVITE_USERS = "INVITE_USERS", // add member
     REMOVE_USERS = "REMOVE_USERS", // remove member
@@ -21,6 +28,7 @@ import { Role } from "@prisma/client"
 
 export const RolePermissions: Record<Role, Permission[]> = {
     OWNER: [
+        Permission.MANAGE_WORKSPACE,
         Permission.VIEW_ASSET,
         Permission.CREATE_ASSET,
         Permission.UPDATE_ASSET,
@@ -37,6 +45,7 @@ export const RolePermissions: Record<Role, Permission[]> = {
     ],
 
     ADMIN: [
+        Permission.MANAGE_WORKSPACE,
         Permission.VIEW_ASSET,
         Permission.CREATE_ASSET,
         Permission.UPDATE_ASSET,
