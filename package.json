@@ -6,9 +6,10 @@
         "dev": "next dev",
         "build": "next build",
         "start": "next start",
+        "typecheck": "tsc --noEmit",
         "test": "dotenv -e .env.test -- vitest",
         "test:run": "dotenv -e .env.test -- vitest run",
-        "lint": "eslint",
+        "lint": "eslint .",
         "migrate:dev": "dotenv -e .env -- prisma migrate dev",
         "migrate:prod": "dotenv -e .env.production -- prisma migrate deploy",
         "migrate:test": "dotenv -e .env.test -- prisma migrate deploy"
