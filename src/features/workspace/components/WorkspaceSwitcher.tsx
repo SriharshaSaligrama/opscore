@@ -50,10 +50,6 @@ export default function WorkspaceSwitcher({
             </DropdownMenuTrigger>
 
             <DropdownMenuContent align="start" className="w-56">
-                <div className="px-2 py-1 text-xs text-muted-foreground">
-                    Switch workspace
-                </div>
-
                 {membershipWorkspaces.map((m) => (
                     <DropdownMenuItem
                         key={m.id}

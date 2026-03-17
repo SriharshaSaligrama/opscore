@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton"
+import CardSkeleton from "@/features/dashboard/components/CardSkeleton"
 
 export default function WorkspaceLoading() {
     return (
@@ -11,10 +12,10 @@ export default function WorkspaceLoading() {
             </div>
 
             {/* Dashboard cards */}
-            <div className="grid grid-cols-3 gap-6">
-                <Skeleton className="h-28 rounded-lg" />
-                <Skeleton className="h-28 rounded-lg" />
-                <Skeleton className="h-28 rounded-lg" />
+            <div className="grid gap-6 md:grid-cols-3">
+                <CardSkeleton />
+                <CardSkeleton />
+                <CardSkeleton />
             </div>
 
         </div>
