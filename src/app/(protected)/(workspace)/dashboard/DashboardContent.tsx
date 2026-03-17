@@ -1,14 +1,10 @@
-import { workspaceService } from "@/features/workspace/workspace.service"
-import { getCurrentSession } from "@/lib/auth"
+import { getWorkspaceContext } from "@/features/workspace/workspace.context"
 
 export async function DashboardContent() {
-    const session = await getCurrentSession()
-
-    const workspace = await workspaceService.getActiveWorkSpaceDetails(session!.activeWorkspaceId!)
+    const { workspace } = await getWorkspaceContext()
 
     return (
         <div>
-            <h1>Dashboard</h1>
             <p>You are authenticated.</p>
             {workspace.name && <p>Active Workspace: {workspace.name}</p>}
         </div>

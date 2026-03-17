@@ -1,5 +1,6 @@
 import { Suspense } from "react"
 import WorkspaceGuard from "./WorkspaceGaurd"
+import AppLayout from "@/components/layout/AppLayout"
 
 export default async function WorkspaceLayout({
     children,
@@ -11,6 +12,6 @@ export default async function WorkspaceLayout({
             <WorkspaceGuard />
         </Suspense>
 
-        {children}
+        <AppLayout>{children}</AppLayout>
     </>
 }
