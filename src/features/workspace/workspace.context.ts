@@ -2,8 +2,9 @@ import { workspaceService } from "./workspace.service"
 import { cache } from "react"
 import { redirect } from "next/navigation"
 import { getAuthContext } from "@/features/auth/auth.context"
+import { WorkspacePromise } from "./workspace.types"
 
-export const getWorkspaceContext = cache(async function () {
+export const getWorkspaceContext = cache(async function (): WorkspacePromise {
     const { session, user } = await getAuthContext()
 
     if (!session.activeWorkspaceId) {

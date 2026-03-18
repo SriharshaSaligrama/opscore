@@ -1,5 +1,5 @@
 import PageHeader from "@/components/layout/PageHeader";
-import { DashboardContent } from "./DashboardContent";
+import { DashboardContent } from "@/features/dashboard/components/DashboardContent";
 
 export default function DashboardPage() {
     return (

@@ -11,22 +11,12 @@ import { Button } from "@/components/ui/button"
 import { Check, ChevronsUpDown, Loader2 } from "lucide-react"
 
 import { selectWorkspace } from "@/features/workspace/workspace.actions"
+import { WorkspacePromise } from "@/features/workspace/workspace.types"
 import { useRouter } from "next/navigation"
-import { useTransition } from "react"
+import { use, useTransition } from "react"
 
-export default function WorkspaceSwitcher({
-    workspace,
-    membershipWorkspaces,
-}: {
-    workspace: {
-        id: string
-        name: string
-    }
-    membershipWorkspaces: {
-        id: string
-        name: string
-    }[]
-}) {
+export default function WorkspaceSwitcher({ workspacePromise }: { workspacePromise: WorkspacePromise }) {
+    const { workspace, membershipWorkspaces } = use(workspacePromise)
     const router = useRouter()
     const [pending, startTransition] = useTransition()
 

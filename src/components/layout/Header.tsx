@@ -1,48 +1,32 @@
 import WorkspaceSwitcher from "@/features/workspace/components/WorkspaceSwitcher"
 import { getWorkspaceContext } from "@/features/workspace/workspace.context"
 
-import {
-    Avatar,
-    AvatarFallback,
-} from "@/components/ui/avatar"
-
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { ThemeSwitcher } from "@/components/ui/theme-switch"
+import { UserDropdown } from "@/features/auth/components/UserDropdown"
+import { Suspense } from "react"
+import WorkspaceSwitcherSkeleton from "@/features/workspace/components/WorkspaceSwitcherSkeleton"
+import UserMenuSkeleton from "@/features/auth/components/UserDropdownSkeleton"
 
 export default async function Header() {
-    const { user, workspace, membershipWorkspaces } = await getWorkspaceContext()
+    const workspacePromise = getWorkspaceContext()
 
     return (
         <header className="h-16 border-b bg-background flex items-center justify-between  px-6">
             {/* Workspace Switcher */}
-            <WorkspaceSwitcher
-                workspace={workspace}
-                membershipWorkspaces={membershipWorkspaces}
-            />
+            <Suspense fallback={<WorkspaceSwitcherSkeleton />}>
+                <WorkspaceSwitcher
+                    workspacePromise={workspacePromise}
+                />
+            </Suspense>
 
             {/* User Menu */}
             <div className="flex items-center gap-4">
                 <ThemeSwitcher />
-                <DropdownMenu>
-                    <DropdownMenuTrigger>
-                        <Avatar className="cursor-pointer">
-                            <AvatarFallback>
-                                {user.name.charAt(0).toUpperCase()}
-                            </AvatarFallback>
-                        </Avatar>
-                    </DropdownMenuTrigger>
-
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
-                            Logout
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                <Suspense fallback={<UserMenuSkeleton />}>
+                    <UserDropdown
+                        workspacePromise={workspacePromise}
+                    />
+                </Suspense>
             </div>
         </header>
     )

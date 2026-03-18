@@ -12,38 +12,44 @@ import {
     ClipboardList,
     Users,
     Settings,
+    LucideIcon,
 } from "lucide-react"
+import { Route } from "next"
 
 export default function Sidebar() {
     const pathname = usePathname()
 
-    const navItems = [
-        {
-            label: "Dashboard",
-            href: "/dashboard",
-            icon: LayoutDashboard,
-        },
-        {
-            label: "Assets",
-            href: "/assets",
-            icon: Package,
-        },
-        {
-            label: "Work Orders",
-            href: "/work-orders",
-            icon: ClipboardList,
-        },
-        {
-            label: "Members",
-            href: "/members",
-            icon: Users,
-        },
-        {
-            label: "Settings",
-            href: "/settings",
-            icon: Settings,
-        },
-    ]
+    const navItems: {
+        label: string
+        href: Route
+        icon: LucideIcon
+    }[] = [
+            {
+                label: "Dashboard",
+                href: "/dashboard",
+                icon: LayoutDashboard,
+            },
+            {
+                label: "Assets",
+                href: "/assets",
+                icon: Package,
+            },
+            {
+                label: "Work Orders",
+                href: "/work-orders",
+                icon: ClipboardList,
+            },
+            {
+                label: "Members",
+                href: "/members",
+                icon: Users,
+            },
+            {
+                label: "Settings",
+                href: "/settings",
+                icon: Settings,
+            },
+        ]
 
     return (
         <aside className="w-64 border-r flex flex-col gap-4 bg-sidebar">

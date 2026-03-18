@@ -1,7 +1,7 @@
 // src/app/(protected)/layout.tsx
 
 import React, { Suspense } from "react"
-import AuthGuard from "./AuthGaurd"
+import AuthGuard from "@/features/auth/components/AuthGaurd"
 
 export default function ProtectedLayout({
     children,

@@ -1,5 +1,5 @@
 import { Suspense } from "react"
-import WorkspaceGuard from "./WorkspaceGaurd"
+import WorkspaceGuard from "@/features/workspace/components/WorkspaceGaurd"
 import AppLayout from "@/components/layout/AppLayout"
 
 export default async function WorkspaceLayout({
