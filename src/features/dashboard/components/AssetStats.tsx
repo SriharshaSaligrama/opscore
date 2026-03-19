@@ -9,15 +9,20 @@ export default async function AssetStats({ workspace }: { workspace: DashboardWo
 
     return (
         <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <FolderKanban className="h-4 w-4" />
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">
                     Assets
                 </CardTitle>
+                <FolderKanban className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <p className="text-2xl font-bold">{assetsCount}</p>
-                <p className="text-sm text-muted-foreground">Assets</p>
+                {assetsCount === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                        No assets added yet
+                    </p>
+                ) : (
+                    <p className="text-2xl font-bold">{assetsCount}</p>
+                )}
             </CardContent>
         </Card>
     )

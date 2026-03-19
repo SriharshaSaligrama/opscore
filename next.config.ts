@@ -5,6 +5,11 @@ const nextConfig: NextConfig = {
     cacheComponents: true,
     reactCompiler: true,
     typedRoutes: true,
+    compiler: {
+        removeConsole: {
+            exclude: ['error'],
+        },
+    },
 };
 
 export default nextConfig;

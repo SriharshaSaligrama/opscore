@@ -9,15 +9,21 @@ export default async function WorkOrderStats({ workspace }: { workspace: Dashboa
 
     return (
         <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <ClipboardList className="h-4 w-4" />
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">
                     Work Orders
                 </CardTitle>
+                <ClipboardList className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
+
             <CardContent>
-                <p className="text-2xl font-bold">{workOrdersCount}</p>
-                <p className="text-sm text-muted-foreground">Open</p>
+                {workOrdersCount === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                        No work orders yet
+                    </p>
+                ) : (
+                    <p className="text-2xl font-bold">{workOrdersCount}</p>
+                )}
             </CardContent>
         </Card>
     )

@@ -1,17 +1,32 @@
 import { Suspense } from "react"
-import WorkspaceGuard from "@/features/workspace/components/WorkspaceGaurd"
 import AppLayout from "@/components/layout/AppLayout"
+import WorkspaceShellFallback from "@/components/layout/WorkspaceShellFallback"
+import { getWorkspaceContext } from "@/features/workspace/workspace.context"
 
-export default async function WorkspaceLayout({
+async function WorkspaceGate({
+    workspacePromise,
+    children,
+}: {
+    workspacePromise: ReturnType<typeof getWorkspaceContext>
+    children: React.ReactNode
+}) {
+    await workspacePromise
+
+    return <AppLayout>{children}</AppLayout>
+}
+
+export default function WorkspaceLayout({
     children,
 }: {
     children: React.ReactNode
 }) {
-    return <>
-        <Suspense fallback={null}>
-            <WorkspaceGuard />
-        </Suspense>
+    const workspacePromise = getWorkspaceContext()
 
-        <AppLayout>{children}</AppLayout>
-    </>
+    return (
+        <Suspense fallback={<WorkspaceShellFallback />}>
+            <WorkspaceGate workspacePromise={workspacePromise}>
+                {children}
+            </WorkspaceGate>
+        </Suspense>
+    )
 }

@@ -48,3 +48,5 @@ src/app/generated/prisma
 
 # global
 global.d.ts
+# next-agents-md
+.next-docs/

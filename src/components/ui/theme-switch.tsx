@@ -18,7 +18,7 @@ export function ThemeSwitcher() {
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Avatar className="cursor-pointer">
+                <Avatar className="cursor-pointer hover:ring-2 hover:ring-primary/30 transition">
                     <Sun className="scale-100 pt-2 pl-2 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
                     <Moon className="absolute pt-2 pl-2 scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
                     <span className="sr-only">Toggle theme</span>

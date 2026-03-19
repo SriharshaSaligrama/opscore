@@ -17,7 +17,7 @@ export async function UserDropdown({ workspacePromise }: { workspacePromise: Wor
 
     return (<DropdownMenu>
         <DropdownMenuTrigger>
-            <Avatar className="cursor-pointer">
+            <Avatar className="cursor-pointer hover:ring-2 hover:ring-primary/30 transition">
                 <AvatarFallback>
                     {user.name.charAt(0).toUpperCase()}
                 </AvatarFallback>
