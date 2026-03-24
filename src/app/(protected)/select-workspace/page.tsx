@@ -1,10 +1,5 @@
-import { Suspense } from "react"
-import SelectWorkspaceContent from "@/features/workspace/components/SelectWorkspaceContent"
+import SelectWorkspaceContent from "@/features/workspace/components/SelectWorkspace"
 
 export default function SelectWorkspacePage() {
-    return (
-        <Suspense fallback={null}>
-            <SelectWorkspaceContent />
-        </Suspense>
-    )
+    return <SelectWorkspaceContent />
 }
