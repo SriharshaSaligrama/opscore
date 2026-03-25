@@ -5,7 +5,7 @@ import { selectWorkspaceAction } from "@/features/workspace/actions/select-works
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useState } from "react"
-import AuthShell from "@/features/auth/components/AuthShell"
+import AuthShell from "@/features/auth/components/auth-shell"
 
 export default function SelectWorkspaceClient({ workspaces }: { workspaces: { id: string; name: string }[] }) {
     const [query, setQuery] = useState("")

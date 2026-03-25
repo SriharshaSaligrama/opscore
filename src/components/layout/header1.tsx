@@ -1,11 +1,11 @@
-import WorkspaceSwitcher from "@/features/workspace/components/WorkspaceSwitcher"
+import WorkspaceSwitcher from "@/features/workspace/components/workspace-switcher"
 import { getWorkspaceContext } from "@/features/workspace/workspace.context"
 
 import { ThemeSwitcher } from "@/components/ui/theme-switch"
-import { UserDropdown } from "@/features/auth/components/UserDropdown"
+import { UserDropdown } from "@/features/auth/components/user-dropdown"
 import { Suspense } from "react"
-import WorkspaceSwitcherSkeleton from "@/features/workspace/components/WorkspaceSwitcherSkeleton"
-import UserMenuSkeleton from "@/features/auth/components/UserDropdownSkeleton"
+import WorkspaceSwitcherSkeleton from "@/features/workspace/components/workspace-switcher-skeleton"
+import UserMenuSkeleton from "@/features/auth/components/user-dropdown-skeleton"
 
 export default async function Header() {
     const workspacePromise = getWorkspaceContext()

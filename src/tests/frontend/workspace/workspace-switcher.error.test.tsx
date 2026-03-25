@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { WorkspaceSwitcherView } from "@/features/workspace/components/WorkspaceSwitcherView"
+import { WorkspaceSwitcherView } from "@/features/workspace/components/workspace-switcher-view"
 import { ReactNode } from "react"
 
 const refreshMock = vi.fn()

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation"
 import { getCurrentSession } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { workspaceService } from "@/features/workspace/workspace.service"
-import SelectWorkspaceClient from "./SelectWorkspaceClient"
+import SelectWorkspaceClient from "./select-workspace-client"
 
 export default async function SelectWorkspace() {
     const session = await getCurrentSession()

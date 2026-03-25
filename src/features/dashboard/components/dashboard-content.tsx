@@ -1,7 +1,7 @@
-import AssetStats from "@/features/dashboard/components/AssetStats"
-import CardSkeleton from "@/features/dashboard/components/CardSkeleton"
-import MemberStats from "@/features/dashboard/components/MemberStats"
-import WorkOrderStats from "@/features/dashboard/components/WorkOrderStats"
+import AssetStats from "@/features/dashboard/components/asset-stats"
+import CardSkeleton from "@/features/dashboard/components/card-skeleton"
+import MemberStats from "@/features/dashboard/components/member-stats"
+import WorkOrderStats from "@/features/dashboard/components/work-order-stats"
 import { getWorkspaceContext } from "@/features/workspace/workspace.context"
 import { Suspense } from "react"
 

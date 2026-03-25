@@ -1,7 +1,7 @@
 import { Skeleton } from "@/components/ui/skeleton"
-import UserMenuSkeleton from "@/features/auth/components/UserDropdownSkeleton"
-import CardSkeleton from "@/features/dashboard/components/CardSkeleton"
-import WorkspaceSwitcherSkeleton from "@/features/workspace/components/WorkspaceSwitcherSkeleton"
+import UserMenuSkeleton from "@/features/auth/components/user-dropdown-skeleton"
+import CardSkeleton from "@/features/dashboard/components/card-skeleton"
+import WorkspaceSwitcherSkeleton from "@/features/workspace/components/workspace-switcher-skeleton"
 import { Separator } from "@/components/ui/separator"
 
 export default function WorkspaceShellFallback() {

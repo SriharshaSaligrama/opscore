@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button"
-import AuthShell from "@/features/auth/components/AuthShell"
+import AuthShell from "@/features/auth/components/auth-shell"
 
 export default function NoWorkspacePage() {
     return (

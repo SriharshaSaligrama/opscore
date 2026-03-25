@@ -1,6 +1,6 @@
 import { Suspense } from "react"
-import AppLayout from "@/components/layout/AppLayout"
-import WorkspaceShellFallback from "@/components/layout/WorkspaceShellFallback"
+import AppLayout from "@/components/layout/app-layout"
+import WorkspaceShellFallback from "@/components/layout/workspace-shell-fallback"
 import { getWorkspaceContext } from "@/features/workspace/workspace.context"
 
 async function WorkspaceGate({

@@ -1,6 +1,6 @@
 "use server"
 
-import { authService } from "../auth.service"
+import { authService } from "@/features/auth/auth.service"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { AppError } from "@/lib/errors"

@@ -1,5 +1,5 @@
-import Sidebar from "./Sidebar"
-import Header from "./Header"
+import Sidebar from "./sidebar1"
+import Header from "./header1"
 
 export default function AppLayout({
     children,

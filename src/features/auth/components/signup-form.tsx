@@ -1,20 +1,21 @@
 "use client"
 
 import { useActionState } from "react"
-import { loginAction } from "@/features/auth/actions/login.action"
+import { signupAction } from "@/features/auth/actions/signup.action"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import AuthShell from "./AuthShell"
+import AuthShell from "./auth-shell"
 
-export default function LoginForm() {
-    const [state, formAction, pending] = useActionState(loginAction, null)
+export default function SignupForm() {
+    const [state, formAction, pending] = useActionState(signupAction, null)
 
     return (
         <AuthShell
-            title="Welcome back"
-            subtitle="Login to your workspace"
+            title="Create account"
+            subtitle="Start managing your operations"
         >
             <form action={formAction} className="space-y-4">
+                <Input name="name" placeholder="Full name" />
                 <Input name="email" placeholder="you@example.com" />
                 <Input name="password" type="password" placeholder="Password" />
 
@@ -23,14 +24,14 @@ export default function LoginForm() {
                 )}
 
                 <Button className="w-full" disabled={pending}>
-                    {pending ? "Logging in..." : "Login"}
+                    {pending ? "Creating..." : "Sign up"}
                 </Button>
             </form>
 
             <p className="text-sm text-center text-muted-foreground">
-                Don’t have an account?{" "}
-                <a href="/sign-up" className="underline hover:text-primary">
-                    Sign up
+                Already have an account?{" "}
+                <a href="/login" className="underline hover:text-primary">
+                    Log in
                 </a>
             </p>
         </AuthShell>

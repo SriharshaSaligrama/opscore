@@ -2,7 +2,7 @@
 
 import React, { Suspense } from "react"
 import { getAuthContext } from "@/features/auth/auth.context"
-import ProtectedAuthFallback from "@/components/layout/ProtectedAuthFallback"
+import ProtectedAuthFallback from "@/components/layout/protected-auth-fallback"
 
 async function AuthGate({
     authPromise,

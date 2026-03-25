@@ -1,4 +1,4 @@
-import PageHeader from "@/components/layout/PageHeader";
+import PageHeader from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 
 export default function WorkOrdersPage() {

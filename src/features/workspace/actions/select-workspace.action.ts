@@ -1,6 +1,6 @@
 "use server"
 
-import { workspaceService } from "../workspace.service"
+import { workspaceService } from "@/features/workspace/workspace.service"
 import { getCurrentSession } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { AppError } from "@/lib/errors"

@@ -1,5 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton"
-import CardSkeleton from "@/features/dashboard/components/CardSkeleton"
+import CardSkeleton from "@/features/dashboard/components/card-skeleton"
 
 export default function WorkspaceLoading() {
     return (

@@ -1,4 +1,4 @@
-import AuthShell from "@/features/auth/components/AuthShell"
+import AuthShell from "@/features/auth/components/auth-shell"
 import { Skeleton } from "@/components/ui/skeleton"
 
 export default function LoginShellLoading() {
