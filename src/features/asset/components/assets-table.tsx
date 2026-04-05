@@ -17,7 +17,7 @@ import EditAssetDialog from "./edit-asset-dialog"
 import DeleteAssetDialog from "./delete-asset-dialog"
 import AssetStatusBadge from "./assets-status-badge"
 import AssetStatusSelect from "./assets-status-select"
-import { Asset, Category } from "@/features/asset/types/asset-types"
+import { Asset, Category } from "@/features/asset/asset-types"
 
 export default function AssetsTable({
     assets,

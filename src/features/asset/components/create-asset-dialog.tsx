@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useActionState } from "react"
-import {
-    createAssetAction,
-} from "@/features/asset/actions/create-asset.action"
-import { AssetActionState } from "@/features/asset/types/asset-types"
+
+import { createAssetAction } from "@/features/asset/actions/create-asset.action"
+
+import { ActionState } from "@/types/action-state"
 
 import {
     Dialog,
@@ -37,7 +37,7 @@ type Category = {
     name: string
 }
 
-const initialState: AssetActionState = {
+const initialState: ActionState = {
     success: false,
     error: null,
 }

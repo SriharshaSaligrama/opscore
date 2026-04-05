@@ -1,15 +1,15 @@
 "use server"
 
 import { assetCategoryService } from "@/features/asset-category/asset-category.service"
-import { CategoryActionState } from "@/features/asset-category/types/asset-category-types"
 import { getWorkspaceContext } from "@/features/workspace/workspace.context"
+import { ActionState } from "@/types/action-state"
 import { revalidatePath } from "next/cache"
 import { AppError } from "@/lib/errors"
 
 export async function deleteCategoryAction(
-    _: CategoryActionState,
+    _: ActionState,
     formData: FormData
-): Promise<CategoryActionState> {
+): Promise<ActionState> {
     try {
         const id = formData.get("id") as string
 

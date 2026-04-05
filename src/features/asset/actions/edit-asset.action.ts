@@ -3,8 +3,8 @@
 import { z } from "zod"
 import { assetService } from "@/features/asset/asset.service"
 import { ASSET_STATUS_VALUES } from "@/features/asset/asset.constants"
-import { AssetActionState } from "@/features/asset/types/asset-types"
 import { getWorkspaceContext } from "@/features/workspace/workspace.context"
+import { ActionState } from "@/types/action-state"
 import { revalidatePath } from "next/cache"
 import { AppError } from "@/lib/errors"
 import { AssetStatus } from "@prisma/client"
@@ -17,7 +17,7 @@ const schema = z.object({
 })
 
 export async function editAssetAction(
-    prevState: AssetActionState | null,
+    prevState: ActionState | null,
     formData: FormData
 ) {
     try {

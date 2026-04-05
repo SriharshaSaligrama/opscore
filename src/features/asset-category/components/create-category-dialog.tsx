@@ -1,8 +1,10 @@
 "use client"
 
 import { useActionState, useEffect, useRef } from "react"
+
 import { createCategoryAction } from "@/features/asset-category/actions/create-category.action"
-import { CategoryActionState } from "@/features/asset-category/types/asset-category-types"
+
+import { ActionState } from "@/types/action-state"
 
 import {
     Dialog,
@@ -15,7 +17,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
-const initialState: CategoryActionState = {
+const initialState: ActionState = {
     success: false,
     error: null,
 }

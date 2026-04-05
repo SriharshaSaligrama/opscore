@@ -1,5 +1,4 @@
-
-export type CategoryActionState = {
+export type ActionState = {
     success: true
     error: null
 } | {

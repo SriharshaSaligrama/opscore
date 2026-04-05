@@ -2,8 +2,8 @@
 
 import { z } from "zod"
 import { assetCategoryService } from "@/features/asset-category/asset-category.service"
-import { CategoryActionState } from "@/features/asset-category/types/asset-category-types"
 import { getWorkspaceContext } from "@/features/workspace/workspace.context"
+import { ActionState } from "@/types/action-state"
 import { AppError } from "@/lib/errors"
 import { revalidatePath } from "next/cache"
 
@@ -13,9 +13,9 @@ const schema = z.object({
 })
 
 export async function createCategoryAction(
-    _: CategoryActionState,
+    _: ActionState,
     formData: FormData
-): Promise<CategoryActionState> {
+): Promise<ActionState> {
     try {
         const parsed = schema.safeParse({
             name: formData.get("name"),

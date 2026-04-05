@@ -2,7 +2,7 @@
 
 import { ReactNode, useState, useTransition } from "react"
 import { editAssetAction } from "@/features/asset/actions/edit-asset.action"
-import { Asset, Category } from "@/features/asset/types/asset-types"
+import { Asset, Category } from "@/features/asset/asset-types"
 import { AssetStatus } from "@prisma/client"
 import { toast } from "sonner"
 

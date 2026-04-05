@@ -1,10 +1,10 @@
 "use client"
 
 import { ReactNode, useActionState, useEffect, useRef, useState } from "react"
-import {
-    editCategoryAction,
-} from "@/features/asset-category/actions/edit-category.action"
-import { CategoryActionState } from "@/features/asset-category/types/asset-category-types"
+
+import { editCategoryAction } from "@/features/asset-category/actions/edit-category.action"
+
+import { ActionState } from "@/types/action-state"
 
 import {
     Dialog,
@@ -18,7 +18,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
-const initialState: CategoryActionState = {
+const initialState: ActionState = {
     success: false,
     error: null,
 }

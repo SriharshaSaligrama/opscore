@@ -1,16 +1,16 @@
 "use server"
 
 import { assetService } from "@/features/asset/asset.service"
-import { AssetActionState } from "@/features/asset/types/asset-types"
 import { getWorkspaceContext } from "@/features/workspace/workspace.context"
+import { ActionState } from "@/types/action-state"
 import { AppError } from "@/lib/errors"
 import { revalidatePath } from "next/cache"
 
 
 export async function deleteAssetAction(
-    _: AssetActionState,
+    _: ActionState,
     formData: FormData
-): Promise<AssetActionState> {
+): Promise<ActionState> {
     try {
         const id = formData.get("id") as string
 

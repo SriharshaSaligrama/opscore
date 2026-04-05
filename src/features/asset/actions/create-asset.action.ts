@@ -2,8 +2,8 @@
 
 import { z } from "zod"
 import { assetService } from "@/features/asset/asset.service"
-import { AssetActionState } from "@/features/asset/types/asset-types"
 import { getWorkspaceContext } from "@/features/workspace/workspace.context"
+import { ActionState } from "@/types/action-state"
 import { AppError } from "@/lib/errors"
 import { revalidatePath } from "next/cache"
 
@@ -13,9 +13,9 @@ const schema = z.object({
 })
 
 export async function createAssetAction(
-    _: AssetActionState,
+    _: ActionState,
     formData: FormData
-): Promise<AssetActionState> {
+): Promise<ActionState> {
     try {
         const parsed = schema.safeParse({
             name: formData.get("name"),

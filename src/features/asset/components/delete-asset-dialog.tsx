@@ -1,10 +1,10 @@
 "use client"
 
 import { ReactNode, useActionState } from "react"
-import {
-    deleteAssetAction,
-} from "@/features/asset/actions/delete-asset.action"
-import { AssetActionState } from "@/features/asset/types/asset-types"
+
+import { deleteAssetAction } from "@/features/asset/actions/delete-asset.action"
+
+import { ActionState } from "@/types/action-state"
 
 import {
     AlertDialog,
@@ -19,7 +19,7 @@ import {
 
 import { Button } from "@/components/ui/button"
 
-const initialState: AssetActionState = {
+const initialState: ActionState = {
     success: false,
     error: null,
 }

@@ -2,8 +2,8 @@
 
 import { z } from "zod"
 import { assetService } from "@/features/asset/asset.service"
-import { AssetActionState } from "@/features/asset/types/asset-types"
 import { getWorkspaceContext } from "@/features/workspace/workspace.context"
+import { ActionState } from "@/types/action-state"
 import { AssetStatus } from "@prisma/client"
 import { revalidatePath } from "next/cache"
 
@@ -13,7 +13,7 @@ const schema = z.object({
 })
 
 export async function updateAssetStatusAction(
-    _: AssetActionState | null,
+    _: ActionState | null,
     formData: FormData
 ) {
     const parsed = schema.safeParse({
