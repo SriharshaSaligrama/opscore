@@ -1,0 +1,45 @@
+"use server"
+
+import { z } from "zod"
+import { assetCategoryService } from "@/features/asset-category/asset-category.service"
+import { CategoryActionState } from "@/features/asset-category/types/asset-category-types"
+import { getWorkspaceContext } from "@/features/workspace/workspace.context"
+import { AppError } from "@/lib/errors"
+import { revalidatePath } from "next/cache"
+
+
+const schema = z.object({
+    name: z.string(),
+})
+
+export async function createCategoryAction(
+    _: CategoryActionState,
+    formData: FormData
+): Promise<CategoryActionState> {
+    try {
+        const parsed = schema.safeParse({
+            name: formData.get("name"),
+        })
+
+        if (!parsed.success)
+            return { success: false, error: "Invalid input" }
+
+        const { session, workspace } = await getWorkspaceContext()
+
+        await assetCategoryService.createCategory({
+            userId: session.user.id,
+            workspaceId: workspace.id,
+            name: parsed.data.name,
+        })
+
+        revalidatePath("/categories")
+
+        return { success: true, error: null }
+
+    } catch (err) {
+        if (err instanceof AppError)
+            return { success: false, error: err.message }
+
+        return { success: false, error: "Failed to create category" }
+    }
+}

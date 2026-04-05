@@ -3,22 +3,43 @@ import UserMenuSkeleton from "@/features/auth/components/user-dropdown-skeleton"
 import CardSkeleton from "@/features/dashboard/components/card-skeleton"
 import WorkspaceSwitcherSkeleton from "@/features/workspace/components/workspace-switcher-skeleton"
 import { Separator } from "@/components/ui/separator"
+import { LayoutDashboard, Tag, Package, ClipboardList, Users, Settings } from "lucide-react"
+
+const sidebarItems = [
+    { labelWidth: "w-24", icon: LayoutDashboard, active: true },
+    { labelWidth: "w-24", icon: Tag, active: true },
+    { labelWidth: "w-16", icon: Package, active: true },
+    { labelWidth: "w-28", icon: ClipboardList, active: true },
+    { labelWidth: "w-20", icon: Users, active: true },
+    { labelWidth: "w-20", icon: Settings, active: true },
+]
 
 export default function WorkspaceShellFallback() {
     return (
         <div className="flex h-screen bg-background">
-            <aside className="hidden w-64 border-r bg-card md:block">
-                <div className="space-y-4">
-                    <Skeleton className="h-8 w-32 mt-4 ml-2" />
-                    <Separator />
-                    <div className="space-y-4 px-2">
-                        <Skeleton className="h-6 w-full" />
-                        <Skeleton className="h-6 w-full" />
-                        <Skeleton className="h-6 w-full" />
-                        <Skeleton className="h-6 w-full" />
-                        <Skeleton className="h-6 w-full" />
+            <aside className="hidden w-64 flex-col gap-4 border-r bg-sidebar md:flex">
+                <Skeleton className="ml-4 mt-5 h-7 w-24" />
+
+                <Separator className="bg-border/60" />
+
+                <nav className="flex flex-col gap-2 p-2 pt-0">
+                    <div className="space-y-2">
+                        {sidebarItems.map((item, index) => {
+                            const Icon = item.icon
+
+                            return (
+                                <div
+                                    key={index}
+                                    className={`inline-flex h-7 w-full items-center justify-start gap-2 rounded-md border border-transparent px-2 ${item.active ? "border-primary bg-secondary text-secondary-foreground" : ""
+                                        }`}
+                                >
+                                    <Icon size={16} className="shrink-0 text-muted-foreground/60" />
+                                    <Skeleton className={`h-3 ${item.labelWidth}`} />
+                                </div>
+                            )
+                        })}
                     </div>
-                </div>
+                </nav>
             </aside>
 
             <div className="flex min-w-0 flex-1 flex-col">

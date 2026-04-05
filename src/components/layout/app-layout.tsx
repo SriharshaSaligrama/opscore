@@ -1,10 +1,11 @@
 import Sidebar from "./sidebar"
 import Header from "./header"
+import { ReactNode } from "react"
 
 export default function AppLayout({
     children,
 }: {
-    children: React.ReactNode
+    children: ReactNode
 }) {
     return (
         <div className="flex h-screen">

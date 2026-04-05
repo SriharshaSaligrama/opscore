@@ -13,6 +13,7 @@ import {
     Users,
     Settings,
     LucideIcon,
+    Tag,
 } from "lucide-react"
 import { Route } from "next"
 
@@ -28,6 +29,11 @@ export default function Sidebar() {
                 label: "Dashboard",
                 href: "/dashboard",
                 icon: LayoutDashboard,
+            },
+            {
+                label: "Categories",
+                href: "/categories",
+                icon: Tag,
             },
             {
                 label: "Assets",

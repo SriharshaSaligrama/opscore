@@ -11,6 +11,7 @@ export enum Permission {
     // Category Permissions
     CREATE_CATEGORY = "CREATE_CATEGORY",
     VIEW_CATEGORY = "VIEW_CATEGORY",
+    UPDATE_CATEGORY = "UPDATE_CATEGORY",
     ARCHIVE_CATEGORY = "ARCHIVE_CATEGORY",
 
     // Work Order Permissions
@@ -35,6 +36,7 @@ export const RolePermissions: Record<Role, Permission[]> = {
         Permission.ARCHIVE_ASSET,
         Permission.VIEW_CATEGORY,
         Permission.CREATE_CATEGORY,
+        Permission.UPDATE_CATEGORY,
         Permission.ARCHIVE_CATEGORY,
         Permission.VIEW_WORK_ORDER,
         Permission.CREATE_WORK_ORDER,
@@ -52,6 +54,7 @@ export const RolePermissions: Record<Role, Permission[]> = {
         Permission.ARCHIVE_ASSET,
         Permission.VIEW_CATEGORY,
         Permission.CREATE_CATEGORY,
+        Permission.UPDATE_CATEGORY,
         Permission.ARCHIVE_CATEGORY,
         Permission.VIEW_WORK_ORDER,
         Permission.CREATE_WORK_ORDER,
@@ -62,6 +65,7 @@ export const RolePermissions: Record<Role, Permission[]> = {
     MANAGER: [
         Permission.VIEW_CATEGORY,
         Permission.CREATE_CATEGORY,
+        Permission.UPDATE_CATEGORY,
         Permission.VIEW_ASSET,
         Permission.VIEW_WORK_ORDER,
         Permission.CREATE_WORK_ORDER,

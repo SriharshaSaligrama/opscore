@@ -1,6 +1,6 @@
 // src/app/(protected)/layout.tsx
 
-import React, { Suspense } from "react"
+import { ReactNode, Suspense } from "react"
 import { getAuthContext } from "@/features/auth/auth.context"
 import ProtectedAuthFallback from "@/components/layout/protected-auth-fallback"
 
@@ -9,7 +9,7 @@ async function AuthGate({
     children,
 }: {
     authPromise: ReturnType<typeof getAuthContext>
-    children: React.ReactNode
+    children: ReactNode
 }) {
     await authPromise
 
@@ -19,7 +19,7 @@ async function AuthGate({
 export default function ProtectedLayout({
     children,
 }: {
-    children: React.ReactNode
+    children: ReactNode
 }) {
     const authPromise = getAuthContext()
 

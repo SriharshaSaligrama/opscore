@@ -56,7 +56,7 @@ describe("assetService.createAsset", () => {
             workspaceId: workspaceA.id,
             name: "Generator",
             categoryId: categoryB.id
-        })).rejects.toThrow("Category does not belong to workspace")
+        })).rejects.toThrow("Invalid category")
     })
 
     it("rejects if user lacks CREATE_ASSET permission", async () => {
@@ -280,7 +280,7 @@ describe("assetService.updateAsset", () => {
             workspaceId: workspaceB.id,
             assetId: asset.id,
             categoryId: categoryA.id
-        })).rejects.toThrow("Category does not belong to workspace")
+        })).rejects.toThrow("Invalid category")
 
     })
 
@@ -353,7 +353,7 @@ describe("assetService.updateAsset", () => {
             assetId: asset.id,
             name: "Updated Generator",
             categoryId: categoryA.id
-        })).rejects.toThrow("Asset does not belong to workspace")
+        })).rejects.toThrow("Invalid asset")
     })
 
     it("rejects if category does not exist", async () => {

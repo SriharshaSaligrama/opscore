@@ -3,6 +3,8 @@ import { Geist, Geist_Mono, Nunito_Sans } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "@/components/ui/sonner";
+import { ReactNode } from "react";
 
 const nunitoSans = Nunito_Sans({ variable: '--font-sans' });
 
@@ -24,7 +26,7 @@ export const metadata: Metadata = {
 export default function RootLayout({
     children,
 }: Readonly<{
-    children: React.ReactNode;
+    children: ReactNode;
 }>) {
     return (
         <html lang="en" className={cn("font-sans", nunitoSans.variable)} suppressHydrationWarning>
@@ -37,6 +39,11 @@ export default function RootLayout({
                     enableSystem
                     disableTransitionOnChange
                 >
+                    <Toaster
+                        position="top-right"
+                        richColors
+                        closeButton
+                    />
                     {children}
                 </ThemeProvider>
             </body>

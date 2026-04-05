@@ -1,29 +1,52 @@
 import { prisma } from "@/lib/prisma"
-import { Permission } from "@/features/authorization/permissions"
-import { ForbiddenError, NotFoundError } from "@/lib/errors"
-import { AssetStatus } from "@prisma/client"
 import { getServiceContext } from "@/lib/service-context"
+import { Permission } from "@/features/authorization/permissions"
+import {
+    BadRequestError,
+    ConflictError,
+    ForbiddenError,
+    NotFoundError,
+} from "@/lib/errors"
+import { AssetStatus } from "@prisma/client"
 
 export const assetService = {
     async createAsset({
-        userId, workspaceId, name, categoryId
-    }: { userId: string, workspaceId: string, name: string, categoryId: string }) {
+        userId,
+        workspaceId,
+        name,
+        categoryId,
+    }: {
+        userId: string
+        workspaceId: string
+        name: string
+        categoryId: string
+    }) {
         const ctx = await getServiceContext(
             userId,
             workspaceId,
             Permission.CREATE_ASSET
         )
 
+        name = name.trim()
+
+        if (!name) {
+            throw new BadRequestError("Asset name is required")
+        }
+
+        if (name.length > 200) {
+            throw new BadRequestError("Asset name too long")
+        }
+
         const category = await prisma.assetCategory.findUnique({
-            where: { id: categoryId }
+            where: { id: categoryId },
         })
 
         if (!category) {
             throw new NotFoundError("Category not found")
         }
 
-        if (category.workspaceId !== workspaceId) {
-            throw new ForbiddenError("Category does not belong to workspace")
+        if (category.workspaceId !== ctx.membership.workspaceId) {
+            throw new ForbiddenError("Invalid category")
         }
 
         return prisma.asset.create({
@@ -32,24 +55,44 @@ export const assetService = {
                 categoryId,
                 workspaceId: ctx.membership.workspaceId,
                 createdBy: ctx.membership.userId,
-            }
+            },
         })
     },
 
     async listAssets({
-        userId, workspaceId
-    }: { userId: string, workspaceId: string }) {
+        userId,
+        workspaceId,
+    }: {
+        userId: string
+        workspaceId: string
+    }) {
         const ctx = await getServiceContext(userId, workspaceId)
 
         return prisma.asset.findMany({
-            where: { workspaceId: ctx.membership.workspaceId, isDeleted: false },
-            orderBy: { createdAt: "asc" }
+            where: {
+                workspaceId: ctx.membership.workspaceId,
+                isDeleted: false, // ✅ soft delete enforced
+            },
+            orderBy: { createdAt: "asc" },
+            include: { category: true },
         })
     },
 
     async updateAsset({
-        userId, workspaceId, assetId, name, categoryId, status
-    }: { userId: string, workspaceId: string, assetId: string, name?: string, categoryId?: string, status?: AssetStatus }) {
+        userId,
+        workspaceId,
+        assetId,
+        name,
+        categoryId,
+        status,
+    }: {
+        userId: string
+        workspaceId: string
+        assetId: string
+        name?: string
+        categoryId?: string
+        status?: AssetStatus
+    }) {
         const ctx = await getServiceContext(
             userId,
             workspaceId,
@@ -57,24 +100,34 @@ export const assetService = {
         )
 
         const asset = await prisma.asset.findUnique({
-            where: { id: assetId }
+            where: { id: assetId },
         })
 
-        if (!asset) {
-            throw new NotFoundError("Asset not found")
-        }
+        if (!asset) throw new NotFoundError("Asset not found")
 
-        if (asset.workspaceId !== workspaceId) {
-            throw new ForbiddenError("Asset does not belong to workspace")
+        if (asset.workspaceId !== ctx.membership.workspaceId) {
+            throw new ForbiddenError("Invalid asset")
         }
 
         if (asset.isDeleted) {
             throw new ForbiddenError("Cannot update archived asset")
         }
 
-        if (categoryId != null) {
+        if (name !== undefined) {
+            name = name.trim()
+
+            if (!name) {
+                throw new BadRequestError("Asset name cannot be empty")
+            }
+
+            if (name.length > 200) {
+                throw new BadRequestError("Asset name too long")
+            }
+        }
+
+        if (categoryId !== undefined) {
             const category = await prisma.assetCategory.findUnique({
-                where: { id: categoryId }
+                where: { id: categoryId },
             })
 
             if (!category) {
@@ -82,23 +135,29 @@ export const assetService = {
             }
 
             if (category.workspaceId !== ctx.membership.workspaceId) {
-                throw new ForbiddenError("Category does not belong to workspace")
+                throw new ForbiddenError("Invalid category")
             }
         }
 
         return prisma.asset.update({
             where: { id: assetId },
             data: {
-                ...(name != null && { name }),
-                ...(status != null && { status }),
-                ...(categoryId != null && { categoryId }),
-            }
+                ...(name !== undefined && { name }),
+                ...(categoryId !== undefined && { categoryId }),
+                ...(status !== undefined && { status }),
+            },
         })
     },
 
     async archiveAsset({
-        userId, workspaceId, assetId
-    }: { userId: string, workspaceId: string, assetId: string }) {
+        userId,
+        workspaceId,
+        assetId,
+    }: {
+        userId: string
+        workspaceId: string
+        assetId: string
+    }) {
         const ctx = await getServiceContext(
             userId,
             workspaceId,
@@ -106,24 +165,32 @@ export const assetService = {
         )
 
         const asset = await prisma.asset.findUnique({
-            where: { id: assetId }
+            where: { id: assetId },
+            include: {
+                workOrders: {
+                    where: { isDeleted: false },
+                    select: { id: true },
+                }
+            },
         })
 
-        if (!asset) {
-            throw new NotFoundError("Asset not found")
-        }
+        if (!asset) throw new NotFoundError("Asset not found")
 
         if (asset.workspaceId !== ctx.membership.workspaceId) {
-            throw new ForbiddenError("Asset does not belong to workspace")
+            throw new ForbiddenError("Invalid asset")
         }
 
-        if (asset.isDeleted) {
-            return asset
+        if (asset.isDeleted) return asset
+
+        if (asset.workOrders.length > 0) {
+            throw new ConflictError(
+                "Asset cannot be deleted because it has work orders"
+            )
         }
 
         return prisma.asset.update({
             where: { id: assetId },
-            data: { isDeleted: true }
+            data: { isDeleted: true },
         })
-    }
+    },
 }
