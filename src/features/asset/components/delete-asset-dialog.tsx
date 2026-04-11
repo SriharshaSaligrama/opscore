@@ -4,8 +4,6 @@ import { ReactNode, useActionState } from "react"
 
 import { deleteAssetAction } from "@/features/asset/actions/delete-asset.action"
 
-import { ActionState } from "@/types/action-state"
-
 import {
     AlertDialog,
     AlertDialogContent,
@@ -19,9 +17,11 @@ import {
 
 import { Button } from "@/components/ui/button"
 
+import { ActionState } from "@/lib/action-handler"
+
 const initialState: ActionState = {
     success: false,
-    error: null,
+    error: "",
 }
 
 export default function DeleteAssetDialog({
@@ -55,7 +55,7 @@ export default function DeleteAssetDialog({
                 <form action={formAction}>
                     <input type="hidden" name="id" value={asset.id} />
 
-                    {state.error && (
+                    {!state.success && state.error && (
                         <p className="text-sm text-red-500">{state.error}</p>
                     )}
 

@@ -20,7 +20,6 @@ export async function selectWorkspaceAction(_: unknown, formData: FormData) {
         if (err instanceof AppError) {
             return { error: err.message }
         }
-        console.error(err)
         return { error: "Failed to select workspace" }
     }
     redirect("/dashboard")

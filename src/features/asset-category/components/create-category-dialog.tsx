@@ -4,8 +4,6 @@ import { useActionState, useEffect, useRef } from "react"
 
 import { createCategoryAction } from "@/features/asset-category/actions/create-category.action"
 
-import { ActionState } from "@/types/action-state"
-
 import {
     Dialog,
     DialogContent,
@@ -17,9 +15,11 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
+import { ActionState } from "@/lib/action-handler"
+
 const initialState: ActionState = {
     success: false,
-    error: null,
+    error: '',
 }
 
 export default function CreateCategoryDialog({
@@ -69,7 +69,7 @@ export default function CreateCategoryDialog({
                 <form ref={formRef} action={handleFormAction} className="space-y-4">
                     <Input name="name" placeholder="Category name" />
 
-                    {state.error && (
+                    {!state.success && state.error && (
                         <p className="text-sm text-red-500">{state.error}</p>
                     )}
 

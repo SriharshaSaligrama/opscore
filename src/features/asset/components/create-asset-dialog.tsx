@@ -5,8 +5,6 @@ import { useActionState } from "react"
 
 import { createAssetAction } from "@/features/asset/actions/create-asset.action"
 
-import { ActionState } from "@/types/action-state"
-
 import {
     Dialog,
     DialogContent,
@@ -32,6 +30,8 @@ import {
     CommandEmpty,
 } from "@/components/ui/command"
 
+import { ActionState } from "@/lib/action-handler"
+
 type Category = {
     id: string
     name: string
@@ -39,7 +39,7 @@ type Category = {
 
 const initialState: ActionState = {
     success: false,
-    error: null,
+    error: "",
 }
 
 export default function CreateAssetDialog({
@@ -156,7 +156,7 @@ export default function CreateAssetDialog({
                             value={selectedCategory?.id || ""}
                         />
 
-                        {state.error && (
+                        {!state.success && state.error && (
                             <p className="text-sm text-red-500">{state.error}</p>
                         )}
 

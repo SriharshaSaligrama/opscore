@@ -27,8 +27,6 @@ export default function AssetStatusSelect({
         formData.set("id", assetId)
         formData.set("status", nextStatus)
 
-
-
         startTransition(async () => {
             const res = await updateAssetStatusAction(null, formData)
 

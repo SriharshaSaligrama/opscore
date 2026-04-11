@@ -1,16 +1,15 @@
 "use server"
 
-import { assetCategoryService } from "@/features/asset-category/asset-category.service"
+import { handleAction } from "@/lib/action-handler"
 import { getWorkspaceContext } from "@/features/workspace/workspace.context"
-import { ActionState } from "@/types/action-state"
+import { assetCategoryService } from "@/features/asset-category/asset-category.service"
 import { revalidatePath } from "next/cache"
-import { AppError } from "@/lib/errors"
 
 export async function deleteCategoryAction(
-    _: ActionState,
+    _: unknown,
     formData: FormData
-): Promise<ActionState> {
-    try {
+) {
+    return handleAction(async () => {
         const id = formData.get("id") as string
 
         const { session, workspace } = await getWorkspaceContext()
@@ -22,13 +21,5 @@ export async function deleteCategoryAction(
         })
 
         revalidatePath("/categories")
-
-        return { success: true, error: null }
-
-    } catch (err) {
-        if (err instanceof AppError)
-            return { success: false, error: err.message }
-
-        return { success: false, error: "Failed to delete category" }
-    }
+    })
 }

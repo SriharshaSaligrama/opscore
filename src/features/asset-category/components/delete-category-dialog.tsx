@@ -16,9 +16,11 @@ import {
 
 import { Button } from "@/components/ui/button"
 
-const initialState = {
+import { ActionState } from "@/lib/action-handler"
+
+const initialState: ActionState = {
     success: false,
-    error: null,
+    error: "",
 }
 
 export default function DeleteCategoryDialog({
@@ -48,7 +50,7 @@ export default function DeleteCategoryDialog({
                 <form action={formAction}>
                     <input type="hidden" name="id" value={category.id} />
 
-                    {state?.error && (
+                    {!state.success && state.error && (
                         <p className="text-sm text-red-500">{state.error}</p>
                     )}
 

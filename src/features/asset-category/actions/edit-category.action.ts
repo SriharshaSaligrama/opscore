@@ -1,45 +1,26 @@
 "use server"
 
 import { z } from "zod"
-import { assetCategoryService } from "@/features/asset-category/asset-category.service"
+import { createValidatedAction } from "@/lib/validated-action"
 import { getWorkspaceContext } from "@/features/workspace/workspace.context"
-import { ActionState } from "@/types/action-state"
+import { assetCategoryService } from "@/features/asset-category/asset-category.service"
 import { revalidatePath } from "next/cache"
-import { AppError } from "@/lib/errors"
 
-export async function editCategoryAction(
-    _: ActionState,
-    formData: FormData
-): Promise<ActionState> {
-    try {
-        const parsed = z.object({
-            id: z.string(),
-            name: z.string(),
-        }).safeParse({
-            id: formData.get("id"),
-            name: formData.get("name"),
-        })
-
-        if (!parsed.success)
-            return { success: false, error: "Invalid input" }
-
+export const editCategoryAction = createValidatedAction(
+    z.object({
+        id: z.string(),
+        name: z.string().trim().min(1),
+    }),
+    async (data) => {
         const { session, workspace } = await getWorkspaceContext()
 
         await assetCategoryService.updateCategory({
             userId: session.user.id,
             workspaceId: workspace.id,
-            categoryId: parsed.data.id,
-            name: parsed.data.name,
+            categoryId: data.id,
+            name: data.name.trim(),
         })
 
         revalidatePath("/categories")
-
-        return { success: true, error: null }
-
-    } catch (err) {
-        if (err instanceof AppError)
-            return { success: false, error: err.message }
-
-        return { success: false, error: "Failed to update category" }
     }
-}
+)

@@ -4,8 +4,6 @@ import { ReactNode, useActionState, useEffect, useRef, useState } from "react"
 
 import { editCategoryAction } from "@/features/asset-category/actions/edit-category.action"
 
-import { ActionState } from "@/types/action-state"
-
 import {
     Dialog,
     DialogContent,
@@ -18,9 +16,11 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
+import { ActionState } from "@/lib/action-handler"
+
 const initialState: ActionState = {
     success: false,
-    error: null,
+    error: "",
 }
 
 export default function EditCategoryDialog({
@@ -80,7 +80,7 @@ export default function EditCategoryDialog({
 
                     <Input name="name" defaultValue={category.name} />
 
-                    {state.error && (
+                    {!state.success && state.error && (
                         <p className="text-sm text-red-500">{state.error}</p>
                     )}
 
