@@ -2,6 +2,7 @@
 
 import { z } from "zod"
 import { handleAction } from "./action-handler"
+import { BadRequestError } from "./errors"
 
 export function createValidatedAction<TOutput>(
     schema: z.ZodType<TOutput>,
@@ -14,7 +15,7 @@ export function createValidatedAction<TOutput>(
             const parsed = schema.safeParse(raw)
 
             if (!parsed.success) {
-                throw new Error(
+                throw new BadRequestError(
                     parsed.error.issues.map(i => i.message).join(", ")
                 )
             }

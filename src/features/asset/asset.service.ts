@@ -113,6 +113,8 @@ export const assetService = {
             throw new ForbiddenError("Cannot update archived asset")
         }
 
+        let shouldCheckNameConflict = false
+
         if (name !== undefined) {
             name = name.trim()
 
@@ -122,6 +124,10 @@ export const assetService = {
 
             if (name.length > 200) {
                 throw new BadRequestError("Asset name too long")
+            }
+
+            if (name !== asset.name) {
+                shouldCheckNameConflict = true
             }
         }
 
@@ -136,6 +142,26 @@ export const assetService = {
 
             if (category.workspaceId !== ctx.membership.workspaceId) {
                 throw new ForbiddenError("Invalid category")
+            }
+        }
+
+        if (shouldCheckNameConflict) {
+            const exisiting = await prisma.asset.findFirst({
+                where: {
+                    workspaceId: ctx.membership.workspaceId,
+                    name,
+                    NOT: { id: assetId },
+                },
+            })
+
+            if (exisiting) {
+                throw new ConflictError("Asset already exists")
+            }
+        }
+
+        if (status !== undefined) {
+            if (!Object.values(AssetStatus).includes(status)) {
+                throw new BadRequestError("Invalid asset status")
             }
         }
 

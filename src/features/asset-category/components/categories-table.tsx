@@ -53,8 +53,8 @@ export default function CategoriesTable({
                                 {c.name}
                             </TableCell>
 
-                            <TableCell className="text-right space-x-2">
-                                <EditCategoryDialog category={c}>
+                            <TableCell className="text-right space-x-2 flex items-center justify-end">
+                                <EditCategoryDialog category={c} key={`${c.id}-${c.name}`}>
                                     <Button size="icon" variant="outline" className="h-8 w-8">
                                         <Pencil className="h-4 w-4" />
                                     </Button>

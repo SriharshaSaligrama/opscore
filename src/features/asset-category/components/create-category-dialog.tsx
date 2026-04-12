@@ -1,7 +1,5 @@
 "use client"
 
-import { useActionState, useEffect, useRef } from "react"
-
 import { createCategoryAction } from "@/features/asset-category/actions/create-category.action"
 
 import {
@@ -16,6 +14,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
 import { ActionState } from "@/lib/action-handler"
+import { useActionDialog } from "@/hooks/use-action-dialog"
 
 const initialState: ActionState = {
     success: false,
@@ -29,31 +28,11 @@ export default function CreateCategoryDialog({
     open: boolean
     onOpenChange: (open: boolean) => void
 }) {
-    const [state, formAction, pending] = useActionState(createCategoryAction, initialState)
-    const formRef = useRef<HTMLFormElement>(null)
-    const wasPendingRef = useRef(false)
-
-    useEffect(() => {
-        if (wasPendingRef.current && !pending) {
-            wasPendingRef.current = false
-
-            const timer = window.setTimeout(() => {
-                if (state.success && open) {
-                    onOpenChange(false)
-                    formRef.current?.reset()
-                }
-            }, 0)
-
-            return () => window.clearTimeout(timer)
-        }
-
-        wasPendingRef.current = pending
-    }, [onOpenChange, open, pending, state.success])
-
-    async function handleFormAction(formData: FormData) {
-        wasPendingRef.current = true
-        formAction(formData)
-    }
+    const { state, pending, formRef, handleAction } = useActionDialog(
+        createCategoryAction,
+        initialState,
+        () => onOpenChange(false)
+    )
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -66,7 +45,7 @@ export default function CreateCategoryDialog({
                     </DialogDescription>
                 </DialogHeader>
 
-                <form ref={formRef} action={handleFormAction} className="space-y-4">
+                <form ref={formRef} action={handleAction} className="space-y-4">
                     <Input name="name" placeholder="Category name" />
 
                     {!state.success && state.error && (

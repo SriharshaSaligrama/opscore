@@ -1,6 +1,6 @@
 "use client"
 
-import { ReactNode, useActionState, useEffect, useRef, useState } from "react"
+import { ReactNode, useState } from "react"
 
 import { editCategoryAction } from "@/features/asset-category/actions/edit-category.action"
 
@@ -18,6 +18,8 @@ import { Input } from "@/components/ui/input"
 
 import { ActionState } from "@/lib/action-handler"
 
+import { useActionDialog } from "@/hooks/use-action-dialog"
+
 const initialState: ActionState = {
     success: false,
     error: "",
@@ -32,35 +34,11 @@ export default function EditCategoryDialog({
 }) {
     const [open, setOpen] = useState(false)
 
-    const [state, formAction, pending] = useActionState(
+    const { state, pending, formRef, handleAction } = useActionDialog(
         editCategoryAction,
-        initialState
+        initialState,
+        () => setOpen(false)
     )
-
-    const formRef = useRef<HTMLFormElement>(null)
-    const wasPendingRef = useRef(false)
-
-    useEffect(() => {
-        if (wasPendingRef.current && !pending) {
-            wasPendingRef.current = false
-
-            const timer = setTimeout(() => {
-                if (state.success) {
-                    setOpen(false)
-                    formRef.current?.reset()
-                }
-            }, 0)
-
-            return () => clearTimeout(timer)
-        }
-
-        wasPendingRef.current = pending
-    }, [pending, state.success])
-
-    function handleAction(formData: FormData) {
-        wasPendingRef.current = true
-        formAction(formData)
-    }
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>

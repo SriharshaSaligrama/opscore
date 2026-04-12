@@ -8,7 +8,7 @@ import { revalidatePath } from "next/cache"
 
 export const createCategoryAction = createValidatedAction(
     z.object({
-        name: z.string().trim().min(1),
+        name: z.string().trim().min(1, "Category name is required").max(30, "Category name too long"),
     }),
     async (data) => {
         const { session, workspace } = await getWorkspaceContext()

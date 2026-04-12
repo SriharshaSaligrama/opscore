@@ -8,7 +8,7 @@ import { revalidatePath } from "next/cache"
 
 export const createAssetAction = createValidatedAction(
     z.object({
-        name: z.string().trim().min(1),
+        name: z.string().trim().min(1, "Asset name is required").max(30, "Asset name too long"),
         categoryId: z.string(),
     }),
     async (data) => {

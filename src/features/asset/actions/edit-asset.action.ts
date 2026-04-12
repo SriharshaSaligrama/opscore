@@ -10,7 +10,7 @@ import { AssetStatus } from "@prisma/client"
 export const editAssetAction = createValidatedAction(
     z.object({
         id: z.string(),
-        name: z.string().min(1),
+        name: z.string().trim().min(1, "Asset name is required").max(30, "Asset name too long"),
         categoryId: z.string(),
         status: z.enum(Object.values(AssetStatus)),
     }),

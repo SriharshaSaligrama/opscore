@@ -1,7 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
-import { useActionState } from "react"
+import { useState } from "react"
 
 import { createAssetAction } from "@/features/asset/actions/create-asset.action"
 
@@ -31,6 +30,7 @@ import {
 } from "@/components/ui/command"
 
 import { ActionState } from "@/lib/action-handler"
+import { useActionDialog } from "@/hooks/use-action-dialog"
 
 type Category = {
     id: string
@@ -54,37 +54,14 @@ export default function CreateAssetDialog({
     const [categoryOpen, setCategoryOpen] = useState(false)
     const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
 
-    const [state, formAction, pending] = useActionState(
+    const { state, pending, formRef, handleAction } = useActionDialog(
         createAssetAction,
-        initialState
-    )
-
-    const formRef = useRef<HTMLFormElement>(null)
-    const wasPendingRef = useRef(false)
-
-    // ✅ SAFE dialog close (correct pattern)
-    useEffect(() => {
-        if (wasPendingRef.current && !pending) {
-            wasPendingRef.current = false
-
-            const timer = setTimeout(() => {
-                if (state.success) {
-                    onOpenChange(false)
-                    formRef.current?.reset()
-                    setSelectedCategory(null)
-                }
-            }, 0)
-
-            return () => clearTimeout(timer)
+        initialState,
+        () => {
+            onOpenChange(false)
+            setSelectedCategory(null)
         }
-
-        wasPendingRef.current = pending
-    }, [pending, state.success, onOpenChange])
-
-    function handleAction(formData: FormData) {
-        wasPendingRef.current = true
-        formAction(formData)
-    }
+    )
 
     const hasCategories = categories.length > 0
 
@@ -99,15 +76,9 @@ export default function CreateAssetDialog({
                 </DialogHeader>
 
                 {!hasCategories ? (
-                    <div className="space-y-4 text-center">
-                        <p className="text-sm text-muted-foreground">
-                            You need at least one category before creating an asset.
-                        </p>
-
-                        <Button type="button">
-                            Create Category
-                        </Button>
-                    </div>
+                    <p className="text-sm text-muted-foreground text-center">
+                        You need at least one category before creating an asset.
+                    </p>
                 ) : (
                     <form ref={formRef} action={handleAction} className="space-y-4">
 
