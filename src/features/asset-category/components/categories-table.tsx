@@ -1,3 +1,5 @@
+"use client"
+
 import {
     Table,
     TableBody,
@@ -12,6 +14,9 @@ import { Pencil, Trash2 } from "lucide-react"
 
 import EditCategoryDialog from "./edit-category-dialog"
 import DeleteCategoryDialog from "./delete-category-dialog"
+import CategoriesEmpty from "./categories-empty"
+
+import { use } from "react"
 
 type Category = {
     id: string
@@ -19,10 +24,16 @@ type Category = {
 }
 
 export default function CategoriesTable({
-    categories,
+    categoriesPromise,
 }: {
-    categories: Category[]
+    categoriesPromise: Promise<Category[]>
 }) {
+    const categories = use(categoriesPromise)
+
+    if (categories.length === 0) {
+        return <CategoriesEmpty />
+    }
+
     return (
         <div className="border rounded-lg overflow-hidden">
             <Table>

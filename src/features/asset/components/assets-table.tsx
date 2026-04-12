@@ -18,22 +18,22 @@ import DeleteAssetDialog from "./delete-asset-dialog"
 import AssetStatusBadge from "./assets-status-badge"
 import AssetStatusSelect from "./assets-status-select"
 import { Asset, Category } from "@/features/asset/asset-types"
+import { use } from "react"
+import AssetsEmptyState from "./assets-empty-state"
 
 export default function AssetsTable({
-    assets,
-    categories,
+    assetsPromise,
+    categoriesPromise,
 }: {
-    assets: Asset[]
-    categories: Category[]
+    assetsPromise: Promise<Asset[]>
+    categoriesPromise: Promise<Category[]>
 }) {
+    const assets = use(assetsPromise)
+    const categories = use(categoriesPromise)
+
     if (assets.length === 0) {
         return (
-            <div className="py-20 text-center">
-                <h2 className="text-lg font-semibold">No assets found</h2>
-                <p className="text-sm text-muted-foreground">
-                    Create your first asset to get started
-                </p>
-            </div>
+            <AssetsEmptyState />
         )
     }
 
