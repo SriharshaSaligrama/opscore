@@ -31,6 +31,7 @@ import {
 
 import { ActionState } from "@/lib/action-handler"
 import { useActionDialog } from "@/hooks/use-action-dialog"
+import { Asset } from "@/features/asset/asset-types"
 
 type Category = {
     id: string
@@ -46,20 +47,28 @@ export default function CreateAssetDialog({
     categories,
     open,
     onOpenChange,
+    onCreate,
 }: {
     categories: Category[]
     open: boolean
     onOpenChange: (open: boolean) => void
+    onCreate?: (asset: Asset) => void
 }) {
     const [categoryOpen, setCategoryOpen] = useState(false)
     const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
 
-    const { state, pending, formRef, handleAction } = useActionDialog(
+    const { state, pending, formRef, handleAction } = useActionDialog<Asset>(
         createAssetAction,
         initialState,
-        () => {
-            onOpenChange(false)
-            setSelectedCategory(null)
+        {
+            onSuccess: (_formData, result) => {
+                if (result.success && "data" in result) {
+                    onCreate?.(result.data)
+                }
+
+                onOpenChange(false)
+                setSelectedCategory(null)
+            },
         }
     )
 

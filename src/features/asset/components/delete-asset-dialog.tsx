@@ -1,8 +1,9 @@
 "use client"
 
-import { ReactNode, useActionState } from "react"
+import { ReactNode, useState } from "react"
 
 import { deleteAssetAction } from "@/features/asset/actions/delete-asset.action"
+import { useActionDialog } from "@/hooks/use-action-dialog"
 
 import {
     AlertDialog,
@@ -27,17 +28,27 @@ const initialState: ActionState = {
 export default function DeleteAssetDialog({
     asset,
     children,
+    onDelete,
 }: {
     asset: { id: string; name: string }
     children: ReactNode
+    onDelete?: (assetId: string) => void
 }) {
-    const [state, formAction, pending] = useActionState(
+    const [open, setOpen] = useState(false)
+
+    const { state, pending, formRef, handleAction } = useActionDialog<string>(
         deleteAssetAction,
-        initialState
+        initialState,
+        {
+            onSuccess: () => {
+                onDelete?.(asset.id)
+                setOpen(false)
+            },
+        }
     )
 
     return (
-        <AlertDialog>
+        <AlertDialog open={open} onOpenChange={setOpen}>
             <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
 
             <AlertDialogContent>
@@ -52,7 +63,7 @@ export default function DeleteAssetDialog({
                     </AlertDialogDescription>
                 </AlertDialogHeader>
 
-                <form action={formAction}>
+                <form ref={formRef} action={handleAction}>
                     <input type="hidden" name="id" value={asset.id} />
 
                     {!state.success && state.error && (

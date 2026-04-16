@@ -1,7 +1,7 @@
 "use server"
 
 import { getWorkspaceContext } from "@/features/workspace/workspace.context"
-import { assetService } from "../asset.service"
+import { assetService } from "@/features/asset/asset.service"
 import { revalidatePath } from "next/cache"
 import { AssetStatus } from "@prisma/client"
 import { createValidatedAction } from "@/lib/validated-action"

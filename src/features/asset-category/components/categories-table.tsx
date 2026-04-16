@@ -16,7 +16,6 @@ import EditCategoryDialog from "./edit-category-dialog"
 import DeleteCategoryDialog from "./delete-category-dialog"
 import CategoriesEmpty from "./categories-empty"
 
-import { use } from "react"
 
 type Category = {
     id: string
@@ -24,11 +23,15 @@ type Category = {
 }
 
 export default function CategoriesTable({
-    categoriesPromise,
+    categories,
+    onCategoryUpdated,
+    onCategoryDeleted,
 }: {
-    categoriesPromise: Promise<Category[]>
+    categories: Category[]
+    onCategoryUpdated: (categoryId: string, updates: Partial<Category>) => void
+    onCategoryDeleted?: (categoryId: string) => void
 }) {
-    const categories = use(categoriesPromise)
+    const categoriesToRender = categories
 
     if (categories.length === 0) {
         return <CategoriesEmpty />
@@ -47,27 +50,33 @@ export default function CategoriesTable({
                 </TableHeader>
 
                 <TableBody>
-                    {categories.map((c) => (
-                        <TableRow key={c.id} className="hover:bg-muted/50 transition-colors">
-                            <TableCell className="font-medium">
-                                {c.name}
-                            </TableCell>
+                    {categoriesToRender.map((c) => {
+                        return (
+                            <TableRow key={c.id} className="hover:bg-muted/50 transition-colors">
+                                <TableCell className="font-medium">
+                                    {c.name}
+                                </TableCell>
 
-                            <TableCell className="text-right space-x-2 flex items-center justify-end">
-                                <EditCategoryDialog category={c} key={`${c.id}-${c.name}`}>
-                                    <Button size="icon" variant="outline" className="h-8 w-8">
-                                        <Pencil className="h-4 w-4" />
-                                    </Button>
-                                </EditCategoryDialog>
+                                <TableCell className="text-right space-x-2 flex items-center justify-end">
+                                    <EditCategoryDialog
+                                        category={c}
+                                        key={c.id}
+                                        onOptimisticUpdate={(updates) => onCategoryUpdated(c.id, updates)}
+                                    >
+                                        <Button size="icon" variant="outline" className="h-8 w-8">
+                                            <Pencil className="h-4 w-4" />
+                                        </Button>
+                                    </EditCategoryDialog>
 
-                                <DeleteCategoryDialog category={c}>
-                                    <Button size="icon" variant="destructive" className="h-8 w-8">
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </DeleteCategoryDialog>
-                            </TableCell>
-                        </TableRow>
-                    ))}
+                                    <DeleteCategoryDialog category={c} onDelete={onCategoryDeleted}>
+                                        <Button size="icon" variant="destructive" className="h-8 w-8">
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </DeleteCategoryDialog>
+                                </TableCell>
+                            </TableRow>
+                        )
+                    })}
                 </TableBody>
             </Table>
         </div>

@@ -1,43 +1,56 @@
 "use client"
 
-import { useActionState, useEffect, useRef } from "react"
+import { useActionState, useRef } from "react"
+import { useRouter } from "next/navigation"
 import { ActionState } from "@/lib/action-handler"
 
-type ServerAction = (
-    state: ActionState,
+type ServerAction<TData = undefined> = (
+    prevState: ActionState,
     formData: FormData
-) => Promise<ActionState>
+) => Promise<ActionState<TData>>
 
-export function useActionDialog(
-    action: ServerAction,
+export function useActionDialog<TData = undefined>(
+    action: ServerAction<TData>,
     initialState: ActionState,
-    onSuccess?: () => void
+    options?: {
+        onSuccess?: (formData: FormData, result: ActionState<TData>) => void
+        onError?: (error: string) => void
+        resetOnSuccess?: boolean
+        refreshOnSuccess?: boolean
+    }
 ) {
-    const [state, formAction, pending] = useActionState(action, initialState)
-
+    const router = useRouter()
     const formRef = useRef<HTMLFormElement>(null)
-    const wasPendingRef = useRef(false)
 
-    useEffect(() => {
-        if (wasPendingRef.current && !pending) {
-            wasPendingRef.current = false
+    const [state, internalAction, pending] = useActionState(
+        async (prevState: ActionState, formData: FormData) => {
+            const result = await action(prevState, formData)
 
-            const timer = setTimeout(() => {
-                if (state.success) {
-                    onSuccess?.()
+            // ✅ HANDLE SUCCESS IMMEDIATELY
+            if (result.success) {
+                options?.onSuccess?.(formData, result)
+
+                if (options?.resetOnSuccess !== false) {
                     formRef.current?.reset()
                 }
-            }, 0)
 
-            return () => clearTimeout(timer)
-        }
+                if (options?.refreshOnSuccess) {
+                    router.refresh()
+                }
+            }
 
-        wasPendingRef.current = pending
-    }, [pending, state.success, onSuccess])
+            // ✅ HANDLE ERROR IMMEDIATELY
+            if (!result.success && result.error) {
+                options?.onError?.(result.error)
+            }
+
+            return result
+        },
+        initialState
+    )
 
     function handleAction(formData: FormData) {
-        wasPendingRef.current = true
-        formAction(formData)
+        internalAction(formData)
     }
 
     return {

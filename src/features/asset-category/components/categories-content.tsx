@@ -1,14 +1,14 @@
 import { getWorkspaceContext } from "@/features/workspace/workspace.context"
 import { assetCategoryService } from "@/features/asset-category/asset-category.service"
-import CategoriesTable from "./categories-table"
+import CategoriesContentClient from "./categories-content-client"
 
 export default async function CategoriesContent() {
     const { session, workspace } = await getWorkspaceContext()
 
-    const categoriesPromise = assetCategoryService.listCategories({
+    const categories = await assetCategoryService.listCategories({
         userId: session.user.id,
         workspaceId: workspace.id,
     })
 
-    return <CategoriesTable categoriesPromise={categoriesPromise} />
+    return <CategoriesContentClient initialCategories={categories} />
 }

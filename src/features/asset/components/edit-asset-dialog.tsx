@@ -40,17 +40,36 @@ export default function EditAssetDialog({
     asset,
     categories,
     children,
+    isUpdating = false,
+    onOptimisticUpdate,
 }: {
     asset: Asset
     categories: Category[]
     children: ReactNode
+    isUpdating: boolean
+    onOptimisticUpdate: (updates: Partial<Asset>) => void
 }) {
     const [open, setOpen] = useState(false)
 
     const { state, pending, formRef, handleAction } = useActionDialog(
         editAssetAction,
         initialState,
-        () => setOpen(false)
+        {
+            onSuccess: (formData) => {
+                const categoryId = formData.get("categoryId") as string
+                const updatedCategory = categories.find((c) => c.id === categoryId)
+
+                onOptimisticUpdate({
+                    name: (formData.get("name") as string)?.trim(),
+                    categoryId,
+                    category: updatedCategory ?? asset.category,
+                    status: formData.get("status") as AssetStatus,
+                })
+
+                setOpen(false)
+            },
+            refreshOnSuccess: true,
+        }
     )
 
     return (
@@ -112,6 +131,7 @@ export default function EditAssetDialog({
                         <Select
                             name="status"
                             defaultValue={asset.status}
+                            disabled={isUpdating}
                         >
                             <SelectTrigger className="w-full">
                                 <SelectValue />
@@ -134,7 +154,14 @@ export default function EditAssetDialog({
                         </p>
                     )}
 
-                    <Button type="submit" disabled={pending} className="w-full">
+                    {isUpdating && (
+                        <p className="text-xs text-muted-foreground">
+                            Status is being updated. Please wait...
+                        </p>
+                    )}
+
+                    {/* SUBMIT */}
+                    <Button type="submit" disabled={pending || isUpdating} className="w-full">
                         {pending && (
                             <span className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
                         )}

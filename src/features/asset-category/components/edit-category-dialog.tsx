@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input"
 import { ActionState } from "@/lib/action-handler"
 
 import { useActionDialog } from "@/hooks/use-action-dialog"
+import { Category } from "@/features/asset/asset-types"
 
 const initialState: ActionState = {
     success: false,
@@ -28,16 +29,24 @@ const initialState: ActionState = {
 export default function EditCategoryDialog({
     category,
     children,
+    onOptimisticUpdate,
 }: {
     category: { id: string; name: string }
     children: ReactNode
+    onOptimisticUpdate: (updates: Partial<Category>) => void
 }) {
     const [open, setOpen] = useState(false)
 
     const { state, pending, formRef, handleAction } = useActionDialog(
         editCategoryAction,
         initialState,
-        () => setOpen(false)
+        {
+            onSuccess: (formData) => {
+                onOptimisticUpdate({ name: formData.get("name") as string })
+                setOpen(false)
+            },
+            refreshOnSuccess: true,
+        }
     )
 
     return (

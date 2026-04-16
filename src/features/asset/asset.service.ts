@@ -56,6 +56,9 @@ export const assetService = {
                 workspaceId: ctx.membership.workspaceId,
                 createdBy: ctx.membership.userId,
             },
+            include: {
+                category: true,
+            },
         })
     },
 
@@ -151,6 +154,7 @@ export const assetService = {
                     workspaceId: ctx.membership.workspaceId,
                     name,
                     NOT: { id: assetId },
+                    isDeleted: false,
                 },
             })
 

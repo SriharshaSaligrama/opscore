@@ -24,14 +24,27 @@ const initialState: ActionState = {
 export default function CreateCategoryDialog({
     open,
     onOpenChange,
+    onCreate,
 }: {
     open: boolean
     onOpenChange: (open: boolean) => void
+    onCreate?: (category: { id: string; name: string }) => void
 }) {
-    const { state, pending, formRef, handleAction } = useActionDialog(
+    const { state, pending, formRef, handleAction } = useActionDialog<{
+        id: string
+        name: string
+    }>(
         createCategoryAction,
         initialState,
-        () => onOpenChange(false)
+        {
+            onSuccess: (_formData, result) => {
+                if (result.success && "data" in result) {
+                    onCreate?.(result.data)
+                }
+
+                onOpenChange(false)
+            },
+        }
     )
 
     return (

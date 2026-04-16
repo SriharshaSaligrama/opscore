@@ -4,9 +4,9 @@ import { z } from "zod"
 import { handleAction } from "./action-handler"
 import { BadRequestError } from "./errors"
 
-export function createValidatedAction<TOutput>(
-    schema: z.ZodType<TOutput>,
-    handler: (data: TOutput, formData: FormData) => Promise<void>
+export function createValidatedAction<TInput, TOutput = void>(
+    schema: z.ZodType<TInput>,
+    handler: (data: TInput, formData: FormData) => Promise<TOutput>
 ) {
     return async (_: unknown, formData: FormData) => {
         return handleAction(async () => {
@@ -20,7 +20,7 @@ export function createValidatedAction<TOutput>(
                 )
             }
 
-            await handler(parsed.data, formData)
+            return handler(parsed.data, formData)
         })
     }
 }

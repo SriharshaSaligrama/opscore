@@ -16,9 +16,17 @@ import {
 export default function AssetStatusSelect({
     assetId,
     currentStatus,
+    isUpdating,
+    onStart,
+    onEnd,
+    onOptimisticUpdate,
 }: {
     assetId: string
     currentStatus: AssetStatus
+    isUpdating: boolean
+    onStart: () => void
+    onEnd: () => void
+    onOptimisticUpdate: (status: AssetStatus) => void
 }) {
     const [pending, startTransition] = useTransition()
 
@@ -27,12 +35,17 @@ export default function AssetStatusSelect({
         formData.set("id", assetId)
         formData.set("status", nextStatus)
 
+        onOptimisticUpdate(nextStatus)
+        onStart()
+
         startTransition(async () => {
             const res = await updateAssetStatusAction(null, formData)
 
             if (!res.success) {
                 toast.error(res.error ?? "Failed to update status")
             }
+
+            onEnd()
         })
     }
 
@@ -41,9 +54,9 @@ export default function AssetStatusSelect({
             value={currentStatus}
             onValueChange={(v) => handleChange(v as AssetStatus)}
         >
-            <SelectTrigger className="w-35 flex items-center justify-between" disabled={pending}>
+            <SelectTrigger className="w-35 flex items-center justify-between" disabled={pending || isUpdating}>
                 <div className="flex items-center gap-2">
-                    {pending && (
+                    {(pending || isUpdating) && (
                         <span className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
                     )}
                     <SelectValue />

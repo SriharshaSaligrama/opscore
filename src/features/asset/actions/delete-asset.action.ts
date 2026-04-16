@@ -2,7 +2,7 @@
 
 import { handleAction } from "@/lib/action-handler"
 import { getWorkspaceContext } from "@/features/workspace/workspace.context"
-import { assetService } from "../asset.service"
+import { assetService } from "@/features/asset/asset.service"
 import { revalidatePath } from "next/cache"
 
 export async function deleteAssetAction(
@@ -21,5 +21,7 @@ export async function deleteAssetAction(
         })
 
         revalidatePath("/assets")
+
+        return id
     })
 }

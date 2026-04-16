@@ -1,6 +1,6 @@
 "use client"
 
-import { ReactNode, useActionState } from "react"
+import { ReactNode, useState } from "react"
 import { deleteCategoryAction } from "@/features/asset-category/actions/delete-category.action"
 
 import {
@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button"
 
 import { ActionState } from "@/lib/action-handler"
+import { useActionDialog } from "@/hooks/use-action-dialog"
 
 const initialState: ActionState = {
     success: false,
@@ -26,14 +27,27 @@ const initialState: ActionState = {
 export default function DeleteCategoryDialog({
     category,
     children,
+    onDelete,
 }: {
     category: { id: string; name: string }
     children: ReactNode
+    onDelete?: (categoryId: string) => void
 }) {
-    const [state, formAction, pending] = useActionState(deleteCategoryAction, initialState)
+    const [open, setOpen] = useState(false)
+
+    const { state, pending, formRef, handleAction } = useActionDialog<string>(
+        deleteCategoryAction,
+        initialState,
+        {
+            onSuccess: () => {
+                onDelete?.(category.id)
+                setOpen(false)
+            },
+        }
+    )
 
     return (
-        <AlertDialog>
+        <AlertDialog open={open} onOpenChange={setOpen}>
             <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
 
             <AlertDialogContent>
@@ -47,7 +61,7 @@ export default function DeleteCategoryDialog({
                     </AlertDialogDescription>
                 </AlertDialogHeader>
 
-                <form action={formAction}>
+                <form ref={formRef} action={handleAction}>
                     <input type="hidden" name="id" value={category.id} />
 
                     {!state.success && state.error && (

@@ -13,12 +13,14 @@ export const createCategoryAction = createValidatedAction(
     async (data) => {
         const { session, workspace } = await getWorkspaceContext()
 
-        await assetCategoryService.createCategory({
+        const category = await assetCategoryService.createCategory({
             userId: session.user.id,
             workspaceId: workspace.id,
             name: data.name.trim(),
         })
 
         revalidatePath("/categories")
+
+        return category
     }
 )

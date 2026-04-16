@@ -2,20 +2,20 @@ import { getWorkspaceContext } from "@/features/workspace/workspace.context"
 import { assetService } from "@/features/asset/asset.service"
 import { assetCategoryService } from "@/features/asset-category/asset-category.service"
 
-import AssetsTable from "./assets-table"
+import AssetsContentClient from "./assets-content-client"
 
 export default async function AssetsContent() {
     const { session, workspace } = await getWorkspaceContext()
 
-    const assetsPromise = assetService.listAssets({
+    const assets = await assetService.listAssets({
         userId: session.user.id,
         workspaceId: workspace.id,
     })
 
-    const categoriesPromise = assetCategoryService.listCategories({
+    const categories = await assetCategoryService.listCategories({
         userId: session.user.id,
         workspaceId: workspace.id,
     })
 
-    return <AssetsTable assetsPromise={assetsPromise} categoriesPromise={categoriesPromise} />
+    return <AssetsContentClient initialAssets={assets} categories={categories} />
 }

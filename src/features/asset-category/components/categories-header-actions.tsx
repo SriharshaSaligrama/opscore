@@ -4,7 +4,11 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import CreateCategoryDialog from "./create-category-dialog"
 
-export default function CategoriesHeaderActions() {
+export default function CategoriesHeaderActions({
+    onCreate,
+}: {
+    onCreate?: (category: { id: string; name: string }) => void
+}) {
     const [open, setOpen] = useState(false)
 
     return (
@@ -13,7 +17,7 @@ export default function CategoriesHeaderActions() {
                 + Add Category
             </Button>
 
-            <CreateCategoryDialog open={open} onOpenChange={setOpen} />
+            <CreateCategoryDialog open={open} onOpenChange={setOpen} onCreate={onCreate} />
         </>
     )
 }

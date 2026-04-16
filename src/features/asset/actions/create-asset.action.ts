@@ -14,7 +14,7 @@ export const createAssetAction = createValidatedAction(
     async (data) => {
         const { session, workspace } = await getWorkspaceContext()
 
-        await assetService.createAsset({
+        const asset = await assetService.createAsset({
             userId: session.user.id,
             workspaceId: workspace.id,
             name: data.name.trim(),
@@ -22,5 +22,7 @@ export const createAssetAction = createValidatedAction(
         })
 
         revalidatePath("/assets")
+
+        return asset
     }
 )
