@@ -21,5 +21,6 @@ export async function deleteCategoryAction(
         })
 
         revalidatePath("/categories")
+        revalidatePath("/assets")
     })
 }

@@ -7,6 +7,16 @@ import {
     ForbiddenError,
     NotFoundError,
 } from "@/lib/errors"
+import { Prisma } from "@prisma/client"
+
+const CATEGORY_NAME_MAX_LENGTH = 30
+
+function isUniqueConstraintError(error: unknown) {
+    return (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+    )
+}
 
 export const assetCategoryService = {
     async createCategory({
@@ -27,24 +37,33 @@ export const assetCategoryService = {
         name = name.trim()
 
         if (!name) throw new BadRequestError("Category name is required")
-        if (name.length > 120)
+        if (name.length > CATEGORY_NAME_MAX_LENGTH)
             throw new BadRequestError("Category name too long")
 
         const existing = await prisma.assetCategory.findFirst({
             where: {
                 workspaceId: ctx.membership.workspaceId,
-                name,
+                name: { equals: name, mode: "insensitive" },
+                isDeleted: false,
             },
         })
 
         if (existing) throw new ConflictError("Category already exists")
 
-        return prisma.assetCategory.create({
-            data: {
-                name,
-                workspaceId: ctx.membership.workspaceId,
-            },
-        })
+        try {
+            return await prisma.assetCategory.create({
+                data: {
+                    name,
+                    workspaceId: ctx.membership.workspaceId,
+                },
+            })
+        } catch (error) {
+            if (isUniqueConstraintError(error)) {
+                throw new ConflictError("Category already exists")
+            }
+
+            throw error
+        }
     },
 
     async listCategories({
@@ -57,7 +76,10 @@ export const assetCategoryService = {
         const ctx = await getServiceContext(userId, workspaceId)
 
         return prisma.assetCategory.findMany({
-            where: { workspaceId: ctx.membership.workspaceId },
+            where: {
+                workspaceId: ctx.membership.workspaceId,
+                isDeleted: false,
+            },
             orderBy: { createdAt: "asc" },
         })
     },
@@ -89,26 +111,39 @@ export const assetCategoryService = {
             throw new ForbiddenError("Invalid category")
         }
 
+        if (category.isDeleted) {
+            throw new ForbiddenError("Cannot update archived category")
+        }
+
         name = name.trim()
 
         if (!name) throw new BadRequestError("Category name is required")
-        if (name.length > 120)
+        if (name.length > CATEGORY_NAME_MAX_LENGTH)
             throw new BadRequestError("Category name too long")
 
         const existing = await prisma.assetCategory.findFirst({
             where: {
                 workspaceId: ctx.membership.workspaceId,
-                name,
+                name: { equals: name, mode: "insensitive" },
                 NOT: { id: categoryId },
+                isDeleted: false,
             },
         })
 
         if (existing) throw new ConflictError("Category already exists")
 
-        return prisma.assetCategory.update({
-            where: { id: categoryId },
-            data: { name },
-        })
+        try {
+            return await prisma.assetCategory.update({
+                where: { id: categoryId },
+                data: { name },
+            })
+        } catch (error) {
+            if (isUniqueConstraintError(error)) {
+                throw new ConflictError("Category already exists")
+            }
+
+            throw error
+        }
     },
 
     async deleteCategory({
@@ -131,7 +166,9 @@ export const assetCategoryService = {
             include: {
                 assets: {
                     where: { isDeleted: false },
-                    select: { id: true },
+                    select: {
+                        id: true,
+                    },
                 }
             },
         })
@@ -142,14 +179,17 @@ export const assetCategoryService = {
             throw new ForbiddenError("Invalid category")
         }
 
+        if (category.isDeleted) return category
+
         if (category.assets.length > 0) {
             throw new ConflictError(
-                "Cannot delete category with existing assets"
+                "Cannot archive category with active assets"
             )
         }
 
-        return prisma.assetCategory.delete({
+        return prisma.assetCategory.update({
             where: { id: categoryId },
+            data: { isDeleted: true },
         })
     },
 }

@@ -86,13 +86,14 @@ model AssetCategory {
     id          String   @id @default(uuid())
     workspaceId String
     name        String
+    isDeleted   Boolean  @default(false)
     createdAt   DateTime @default(now())
 
     workspace Workspace @relation(fields: [workspaceId], references: [id])
     assets    Asset[]
 
-    @@unique([workspaceId, name])
     @@index([workspaceId])
+    @@index([workspaceId, isDeleted])
 }
 
 enum AssetStatus {
@@ -121,6 +122,7 @@ model Asset {
     workOrders WorkOrder[]
 
     @@index([workspaceId])
+    @@index([workspaceId, isDeleted])
     @@index([categoryId])
 }
 

@@ -22,5 +22,6 @@ export const editCategoryAction = createValidatedAction(
         })
 
         revalidatePath("/categories")
+        revalidatePath("/assets")
     }
 )

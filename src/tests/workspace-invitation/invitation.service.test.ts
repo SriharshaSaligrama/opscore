@@ -42,6 +42,32 @@ describe("Workspace Invitation — Send Invite", () => {
         ).rejects.toThrow()
     })
 
+    it("allows re-inviting after previous pending invite expires", async () => {
+        const owner = await createUser()
+        const ws = await createWorkspaceForUser(owner.id)
+
+        const firstInvite = await invitationService.sendInvite({
+            workspaceId: ws.id,
+            email: "expired@test.com",
+            role: "VIEWER",
+            actorId: owner.id,
+        })
+
+        await prisma.workspaceInvitation.update({
+            where: { id: firstInvite.id },
+            data: { expiresAt: new Date(Date.now() - 1000) },
+        })
+
+        const secondInvite = await invitationService.sendInvite({
+            workspaceId: ws.id,
+            email: "expired@test.com",
+            role: "VIEWER",
+            actorId: owner.id,
+        })
+
+        expect(secondInvite.id).not.toBe(firstInvite.id)
+    })
+
     it("prevents unauthorized users from inviting", async () => {
         const owner = await createUser()
         const ws = await createWorkspaceForUser(owner.id)
@@ -118,6 +144,46 @@ describe("Workspace Invitation — Accept Invite", () => {
             })
         ).rejects.toThrow()
     }, 10000)
+
+    it("prevents accepting invite for a different email", async () => {
+        const owner = await createUser()
+        const ws = await createWorkspaceForUser(owner.id)
+        const invitedUser = await createUser("invited@test.com")
+        const otherUser = await createUser("other@test.com")
+
+        const invite = await invitationService.sendInvite({
+            workspaceId: ws.id,
+            email: invitedUser.email,
+            role: "VIEWER",
+            actorId: owner.id,
+        })
+
+        await expect(
+            invitationService.acceptInvite({
+                token: invite.token,
+                userId: otherUser.id,
+            })
+        ).rejects.toThrow("Invitation does not belong to this user")
+    })
+
+    it("prevents accepting invite when user is already a member", async () => {
+        const owner = await createUser()
+        const ws = await createWorkspaceForUser(owner.id)
+
+        const invite = await invitationService.sendInvite({
+            workspaceId: ws.id,
+            email: owner.email,
+            role: "VIEWER",
+            actorId: owner.id,
+        })
+
+        await expect(
+            invitationService.acceptInvite({
+                token: invite.token,
+                userId: owner.id,
+            })
+        ).rejects.toThrow("User is already a member")
+    })
 
     it("prevents accepting expired invite", async () => {
         const owner = await createUser()

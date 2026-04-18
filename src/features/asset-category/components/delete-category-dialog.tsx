@@ -53,11 +53,12 @@ export default function DeleteCategoryDialog({
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>
-                        Delete &ldquo;{category.name}&rdquo;?
+                        Archive &ldquo;{category.name}&rdquo;?
                     </AlertDialogTitle>
 
                     <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete the category.
+                        This will archive the category and remove it from active lists.
+                        Categories with active assets cannot be archived.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
 
@@ -75,7 +76,7 @@ export default function DeleteCategoryDialog({
                             {pending && (
                                 <span className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
                             )}
-                            {pending ? "Deleting..." : "Delete"}
+                            {pending ? "Archiving..." : "Archive"}
                         </Button>
                     </AlertDialogFooter>
                 </form>

@@ -8,12 +8,13 @@ export const invitationRepository = {
         })
     },
 
-    findPendingByEmail(workspaceId: string, email: string) {
+    findActivePendingByEmail(workspaceId: string, email: string) {
         return prisma.workspaceInvitation.findFirst({
             where: {
                 workspaceId,
                 email: email.toLowerCase(),
                 acceptedAt: null,
+                expiresAt: { gt: new Date() },
             },
         })
     },

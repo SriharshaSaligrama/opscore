@@ -31,6 +31,7 @@ export default function AssetStatusSelect({
     const [pending, startTransition] = useTransition()
 
     function handleChange(nextStatus: AssetStatus) {
+        const previousStatus = currentStatus
         const formData = new FormData()
         formData.set("id", assetId)
         formData.set("status", nextStatus)
@@ -39,13 +40,19 @@ export default function AssetStatusSelect({
         onStart()
 
         startTransition(async () => {
-            const res = await updateAssetStatusAction(null, formData)
+            try {
+                const res = await updateAssetStatusAction(null, formData)
 
-            if (!res.success) {
-                toast.error(res.error ?? "Failed to update status")
+                if (!res.success) {
+                    onOptimisticUpdate(previousStatus)
+                    toast.error(res.error ?? "Failed to update status")
+                }
+            } catch {
+                onOptimisticUpdate(previousStatus)
+                toast.error("Failed to update status")
+            } finally {
+                onEnd()
             }
-
-            onEnd()
         })
     }
 

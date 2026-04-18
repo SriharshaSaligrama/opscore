@@ -7,7 +7,16 @@ import {
     ForbiddenError,
     NotFoundError,
 } from "@/lib/errors"
-import { AssetStatus } from "@prisma/client"
+import { AssetStatus, Prisma } from "@prisma/client"
+
+const ASSET_NAME_MAX_LENGTH = 30
+
+function isUniqueConstraintError(error: unknown) {
+    return (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+    )
+}
 
 export const assetService = {
     async createAsset({
@@ -33,7 +42,7 @@ export const assetService = {
             throw new BadRequestError("Asset name is required")
         }
 
-        if (name.length > 200) {
+        if (name.length > ASSET_NAME_MAX_LENGTH) {
             throw new BadRequestError("Asset name too long")
         }
 
@@ -49,17 +58,41 @@ export const assetService = {
             throw new ForbiddenError("Invalid category")
         }
 
-        return prisma.asset.create({
-            data: {
-                name,
-                categoryId,
+        if (category.isDeleted) {
+            throw new ForbiddenError("Cannot create asset in archived category")
+        }
+
+        const existing = await prisma.asset.findFirst({
+            where: {
                 workspaceId: ctx.membership.workspaceId,
-                createdBy: ctx.membership.userId,
-            },
-            include: {
-                category: true,
+                name: { equals: name, mode: "insensitive" },
+                isDeleted: false,
             },
         })
+
+        if (existing) {
+            throw new ConflictError("Asset already exists")
+        }
+
+        try {
+            return await prisma.asset.create({
+                data: {
+                    name,
+                    categoryId,
+                    workspaceId: ctx.membership.workspaceId,
+                    createdBy: ctx.membership.userId,
+                },
+                include: {
+                    category: true,
+                },
+            })
+        } catch (error) {
+            if (isUniqueConstraintError(error)) {
+                throw new ConflictError("Asset already exists")
+            }
+
+            throw error
+        }
     },
 
     async listAssets({
@@ -125,7 +158,7 @@ export const assetService = {
                 throw new BadRequestError("Asset name cannot be empty")
             }
 
-            if (name.length > 200) {
+            if (name.length > ASSET_NAME_MAX_LENGTH) {
                 throw new BadRequestError("Asset name too long")
             }
 
@@ -146,13 +179,17 @@ export const assetService = {
             if (category.workspaceId !== ctx.membership.workspaceId) {
                 throw new ForbiddenError("Invalid category")
             }
+
+            if (category.isDeleted) {
+                throw new ForbiddenError("Cannot move asset to archived category")
+            }
         }
 
         if (shouldCheckNameConflict) {
             const exisiting = await prisma.asset.findFirst({
                 where: {
                     workspaceId: ctx.membership.workspaceId,
-                    name,
+                    name: { equals: name, mode: "insensitive" },
                     NOT: { id: assetId },
                     isDeleted: false,
                 },
@@ -169,14 +206,22 @@ export const assetService = {
             }
         }
 
-        return prisma.asset.update({
-            where: { id: assetId },
-            data: {
-                ...(name !== undefined && { name }),
-                ...(categoryId !== undefined && { categoryId }),
-                ...(status !== undefined && { status }),
-            },
-        })
+        try {
+            return await prisma.asset.update({
+                where: { id: assetId },
+                data: {
+                    ...(name !== undefined && { name }),
+                    ...(categoryId !== undefined && { categoryId }),
+                    ...(status !== undefined && { status }),
+                },
+            })
+        } catch (error) {
+            if (isUniqueConstraintError(error)) {
+                throw new ConflictError("Asset already exists")
+            }
+
+            throw error
+        }
     },
 
     async archiveAsset({
@@ -199,7 +244,9 @@ export const assetService = {
             include: {
                 workOrders: {
                     where: { isDeleted: false },
-                    select: { id: true },
+                    select: {
+                        id: true,
+                    },
                 }
             },
         })
@@ -214,7 +261,7 @@ export const assetService = {
 
         if (asset.workOrders.length > 0) {
             throw new ConflictError(
-                "Asset cannot be deleted because it has work orders"
+                "Asset cannot be deleted because it has active work orders"
             )
         }
 

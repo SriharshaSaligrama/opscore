@@ -1,12 +1,19 @@
 import { prisma } from "@/lib/prisma"
-import { DomainEntityType, Role } from "@prisma/client"
-import { ForbiddenError, NotFoundError } from "@/lib/errors"
+import { DomainEntityType, Prisma, Role } from "@prisma/client"
+import { ConflictError, ForbiddenError, NotFoundError } from "@/lib/errors"
 
 import { findMembership, countWorkspaceOwners } from "./membership.repository"
 import { authorizationService } from "@/features/authorization/authorization.service"
 
 import { domainEventService } from "@/features/domain-events/domain-event.service"
 import { DomainEventType } from "@/features/domain-events/domain-event.types"
+
+function isUniqueConstraintError(error: unknown) {
+    return (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+    )
+}
 
 export const membershipService = {
     async listMembers(workspaceId: string) {
@@ -38,13 +45,23 @@ export const membershipService = {
         role: Role
         actorId: string
     }) {
-        const membership = await prisma.membership.create({
-            data: {
-                workspaceId,
-                userId,
-                role,
-            },
-        })
+        const membership = await (async () => {
+            try {
+                return await prisma.membership.create({
+                    data: {
+                        workspaceId,
+                        userId,
+                        role,
+                    },
+                })
+            } catch (error) {
+                if (isUniqueConstraintError(error)) {
+                    throw new ConflictError("User is already a member")
+                }
+
+                throw error
+            }
+        })()
 
         await domainEventService.record({
             workspaceId,

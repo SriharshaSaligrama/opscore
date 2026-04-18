@@ -20,6 +20,7 @@ export const createCategoryAction = createValidatedAction(
         })
 
         revalidatePath("/categories")
+        revalidatePath("/assets")
 
         return category
     }

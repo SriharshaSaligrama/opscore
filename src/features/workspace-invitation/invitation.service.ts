@@ -1,6 +1,7 @@
 import crypto from "crypto"
 import { Role } from "@prisma/client"
-import { ForbiddenError, NotFoundError } from "@/lib/errors"
+import { ConflictError, ForbiddenError, NotFoundError } from "@/lib/errors"
+import { prisma } from "@/lib/prisma"
 
 import { invitationRepository } from "./invitation.repository"
 import { membershipService } from "@/features/membership/membership.service"
@@ -36,9 +37,9 @@ export const invitationService = {
         const membership = await authorizationService.ensureMembership(actorId, workspaceId)
         authorizationService.ensurePermission(membership, Permission.INVITE_USERS)
 
-        const normalizedEmail = email.toLowerCase()
+        const normalizedEmail = email.trim().toLowerCase()
 
-        const existing = await invitationRepository.findPendingByEmail(workspaceId, normalizedEmail)
+        const existing = await invitationRepository.findActivePendingByEmail(workspaceId, normalizedEmail)
         if (existing) throw new ForbiddenError("Pending invitation already exists")
 
         const token = generateToken()
@@ -77,6 +78,30 @@ export const invitationService = {
         if (invite.acceptedAt) throw new ForbiddenError("Invitation already accepted")
 
         if (invite.expiresAt < new Date()) throw new ForbiddenError("Invitation expired")
+
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { email: true },
+        })
+
+        if (!user) throw new NotFoundError("User not found")
+
+        if (user.email.toLowerCase() !== invite.email.toLowerCase()) {
+            throw new ForbiddenError("Invitation does not belong to this user")
+        }
+
+        const existingMembership = await prisma.membership.findUnique({
+            where: {
+                userId_workspaceId: {
+                    userId,
+                    workspaceId: invite.workspaceId,
+                },
+            },
+        })
+
+        if (existingMembership) {
+            throw new ConflictError("User is already a member")
+        }
 
         const membership = await membershipService.addMember({
             workspaceId: invite.workspaceId,

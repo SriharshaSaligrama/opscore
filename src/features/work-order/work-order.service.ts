@@ -15,6 +15,7 @@ import {
 
 import { withTransaction } from "@/lib/transaction"
 import { getServiceContext } from "@/lib/service-context"
+import { BadRequestError } from "@/lib/errors"
 
 import { domainEventService } from "@/features/domain-events/domain-event.service"
 import { DomainEventType } from "@/features/domain-events/domain-event.types"
@@ -123,7 +124,7 @@ export const workOrderService = {
             if (action === "assign") {
 
                 if (!assigneeId) {
-                    throw new Error("assigneeId required")
+                    throw new BadRequestError("assigneeId required")
                 }
 
                 await ensureUserInWorkspace(

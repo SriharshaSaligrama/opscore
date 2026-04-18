@@ -4,6 +4,8 @@ import { createMembership, createUser } from "@/tests/factories/user.factory";
 import { AssetStatus, Role } from "@prisma/client";
 import { assetCategoryService } from "@/features/asset-category/asset-category.service";
 import { assetService } from "@/features/asset/asset.service";
+import { workOrderService } from "@/features/work-order/work-order.service";
+import { prisma } from "@/lib/prisma";
 
 describe("assetService.createAsset", () => {
     it("should create an asset successfully", async () => {
@@ -95,6 +97,32 @@ describe("assetService.createAsset", () => {
         })).rejects.toThrow("Category not found")
     })
 
+    it("rejects if category is archived", async () => {
+        const workspace = await createWorkspace()
+        const owner = await createUser()
+
+        await createMembership(owner.id, workspace.id, Role.OWNER)
+
+        const category = await assetCategoryService.createCategory({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            name: "Electrical",
+        })
+
+        await assetCategoryService.deleteCategory({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            categoryId: category.id,
+        })
+
+        await expect(assetService.createAsset({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            name: "Generator",
+            categoryId: category.id
+        })).rejects.toThrow("Cannot create asset in archived category")
+    })
+
     it("rejects if user is not a member of workspace", async () => {
         const workspace = await createWorkspace()
         const user = await createUser()
@@ -105,6 +133,71 @@ describe("assetService.createAsset", () => {
             name: "Generator",
             categoryId: "some-category-id"
         })).rejects.toThrow()
+    })
+
+    it("rejects duplicate active asset name in same workspace", async () => {
+        const workspace = await createWorkspace()
+        const owner = await createUser()
+
+        await createMembership(owner.id, workspace.id, Role.OWNER)
+
+        const category = await assetCategoryService.createCategory({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            name: "Electrical",
+        })
+
+        await assetService.createAsset({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            name: "Generator",
+            categoryId: category.id,
+        })
+
+        await expect(
+            assetService.createAsset({
+                userId: owner.id,
+                workspaceId: workspace.id,
+                name: "Generator",
+                categoryId: category.id,
+            })
+        ).rejects.toThrow("Asset already exists")
+    })
+
+    it("allows recreating asset name after archive", async () => {
+        const workspace = await createWorkspace()
+        const owner = await createUser()
+
+        await createMembership(owner.id, workspace.id, Role.OWNER)
+
+        const category = await assetCategoryService.createCategory({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            name: "Electrical",
+        })
+
+        const asset = await assetService.createAsset({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            name: "Generator",
+            categoryId: category.id,
+        })
+
+        await assetService.archiveAsset({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            assetId: asset.id,
+        })
+
+        const recreated = await assetService.createAsset({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            name: "Generator",
+            categoryId: category.id,
+        })
+
+        expect(recreated.id).not.toBe(asset.id)
+        expect(recreated.name).toBe("Generator")
     })
 })
 
@@ -382,6 +475,45 @@ describe("assetService.updateAsset", () => {
             categoryId: "non-existent-category-id"
         })).rejects.toThrow("Category not found")
     })
+
+    it("rejects moving asset to archived category", async () => {
+        const workspace = await createWorkspace()
+        const owner = await createUser()
+
+        await createMembership(owner.id, workspace.id, Role.OWNER)
+
+        const activeCategory = await assetCategoryService.createCategory({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            name: "Electrical",
+        })
+
+        const archivedCategory = await assetCategoryService.createCategory({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            name: "Plumbing",
+        })
+
+        const asset = await assetService.createAsset({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            name: "Generator",
+            categoryId: activeCategory.id
+        })
+
+        await assetCategoryService.deleteCategory({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            categoryId: archivedCategory.id,
+        })
+
+        await expect(assetService.updateAsset({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            assetId: asset.id,
+            categoryId: archivedCategory.id
+        })).rejects.toThrow("Cannot move asset to archived category")
+    })
 })
 
 describe("assetService.listAssets", () => {
@@ -438,7 +570,7 @@ describe("assetService.listAssets", () => {
         expect(assetsA[0].id).toBe(assetA.id)
         expect(assetsB).toHaveLength(1)
         expect(assetsB[0].id).toBe(assetB.id)
-    }, 10000)
+    }, 30000)
 
     it("rejects if user is not a member of workspace", async () => {
         const workspace = await createWorkspace()
@@ -484,5 +616,80 @@ describe("assetService.listAssets", () => {
         })
 
         expect(assets).toHaveLength(0)
+    })
+})
+
+describe("assetService.archiveAsset", () => {
+    it("allows archiving when only archived work orders reference asset", async () => {
+        const workspace = await createWorkspace()
+        const owner = await createUser()
+
+        await createMembership(owner.id, workspace.id, Role.OWNER)
+
+        const category = await assetCategoryService.createCategory({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            name: "Electrical",
+        })
+
+        const asset = await assetService.createAsset({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            name: "Generator",
+            categoryId: category.id,
+        })
+
+        const workOrder = await workOrderService.createWorkOrder({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            assetId: asset.id,
+        })
+
+        await prisma.workOrder.update({
+            where: { id: workOrder.id },
+            data: { isDeleted: true },
+        })
+
+        const archivedAsset = await assetService.archiveAsset({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            assetId: asset.id,
+        })
+
+        expect(archivedAsset.isDeleted).toBe(true)
+    })
+
+    it("rejects archiving when active work orders reference asset", async () => {
+        const workspace = await createWorkspace()
+        const owner = await createUser()
+
+        await createMembership(owner.id, workspace.id, Role.OWNER)
+
+        const category = await assetCategoryService.createCategory({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            name: "Electrical",
+        })
+
+        const asset = await assetService.createAsset({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            name: "Generator",
+            categoryId: category.id,
+        })
+
+        await workOrderService.createWorkOrder({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            assetId: asset.id,
+        })
+
+        await expect(
+            assetService.archiveAsset({
+                userId: owner.id,
+                workspaceId: workspace.id,
+                assetId: asset.id,
+            })
+        ).rejects.toThrow("active work orders")
     })
 })

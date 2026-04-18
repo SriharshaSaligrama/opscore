@@ -58,8 +58,9 @@ export default function DeleteAssetDialog({
                     </AlertDialogTitle>
 
                     <AlertDialogDescription>
-                        This asset will be permanently deleted. If it has work orders,
-                        deletion will be blocked.
+                        This will archive the asset. It will no longer
+                        appear in active lists. If any work order still references this
+                        asset, archiving is blocked.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
 

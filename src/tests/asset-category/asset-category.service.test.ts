@@ -3,6 +3,7 @@ import { createMembership, createUser } from "@/tests/factories/user.factory";
 import { createWorkspace } from "@/tests/factories/workspace.factory";
 import { Role } from "@prisma/client";
 import { assetCategoryService } from "@/features/asset-category/asset-category.service";
+import { assetService } from "@/features/asset/asset.service";
 
 describe("assetCategoryService.createCategory", () => {
     it("creates category successfully", async () => {
@@ -189,5 +190,123 @@ describe("assetCategoryService.listCategeories", () => {
                 workspaceId: workspace.id,
             })
         ).rejects.toThrow()
+    })
+
+    it("does not return archived categories", async () => {
+        const workspace = await createWorkspace()
+        const owner = await createUser()
+
+        await createMembership(owner.id, workspace.id, Role.OWNER)
+
+        const category = await assetCategoryService.createCategory({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            name: "Electrical",
+        })
+
+        await assetCategoryService.deleteCategory({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            categoryId: category.id,
+        })
+
+        const categories = await assetCategoryService.listCategories({
+            userId: owner.id,
+            workspaceId: workspace.id,
+        })
+
+        expect(categories).toHaveLength(0)
+    })
+})
+
+describe("assetCategoryService.deleteCategory", () => {
+    it("archives category when only archived assets reference it", async () => {
+        const workspace = await createWorkspace()
+        const owner = await createUser()
+
+        await createMembership(owner.id, workspace.id, Role.OWNER)
+
+        const category = await assetCategoryService.createCategory({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            name: "Electrical",
+        })
+
+        const asset = await assetService.createAsset({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            name: "Generator",
+            categoryId: category.id,
+        })
+
+        await assetService.archiveAsset({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            assetId: asset.id,
+        })
+
+        const archivedCategory = await assetCategoryService.deleteCategory({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            categoryId: category.id,
+        })
+
+        expect(archivedCategory.isDeleted).toBe(true)
+    })
+
+    it("rejects archiving category with active assets", async () => {
+        const workspace = await createWorkspace()
+        const owner = await createUser()
+
+        await createMembership(owner.id, workspace.id, Role.OWNER)
+
+        const category = await assetCategoryService.createCategory({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            name: "Electrical",
+        })
+
+        await assetService.createAsset({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            name: "Generator",
+            categoryId: category.id,
+        })
+
+        await expect(
+            assetCategoryService.deleteCategory({
+                userId: owner.id,
+                workspaceId: workspace.id,
+                categoryId: category.id,
+            })
+        ).rejects.toThrow("Cannot archive category with active assets")
+    })
+
+    it("allows recreating category name after archive", async () => {
+        const workspace = await createWorkspace()
+        const owner = await createUser()
+
+        await createMembership(owner.id, workspace.id, Role.OWNER)
+
+        const category = await assetCategoryService.createCategory({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            name: "Electrical",
+        })
+
+        await assetCategoryService.deleteCategory({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            categoryId: category.id,
+        })
+
+        const recreated = await assetCategoryService.createCategory({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            name: "Electrical",
+        })
+
+        expect(recreated.id).not.toBe(category.id)
+        expect(recreated.name).toBe("Electrical")
     })
 })
