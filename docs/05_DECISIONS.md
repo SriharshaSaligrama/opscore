@@ -68,3 +68,35 @@ Rationale:
 Tradeoff:
 - Slower than unit tests
 - Requires sequential execution
+
+---
+
+## Server Actions Pattern
+
+Actions follow pattern: UI → Service → Prisma
+
+No API routes for internal operations.
+Direct server execution via Server Actions.
+Strong typing + validation via Zod.
+
+---
+
+## State Machine for Work Orders
+
+Work order status transitions driven by state machine:
+
+```
+assign: OPEN → ASSIGNED
+start: ASSIGNED → IN_PROGRESS
+complete: IN_PROGRESS → COMPLETED
+close: COMPLETED → CLOSED
+```
+
+Each transition enforces:
+- Valid current status
+- Role-based permissions
+
+Benefits:
+- Predictable workflows
+- No invalid state transitions
+- Self-documenting business rules

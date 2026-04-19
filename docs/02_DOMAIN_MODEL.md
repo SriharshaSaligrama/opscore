@@ -76,9 +76,16 @@ Fields:
 - status
 - priority
 - description
+- createdBy
 - isDeleted
 
 Lifecycle:
 OPEN → ASSIGNED → IN_PROGRESS → COMPLETED → CLOSED
 
-Hard deletion is avoided.
+Actions:
+- assign: OWNER, ADMIN, MANAGER can assign to technician
+- start: TECHNICIAN can start work
+- complete: TECHNICIAN can complete work
+- close: OWNER, ADMIN can close work order
+
+Soft delete enforced (isDeleted).

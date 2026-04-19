@@ -146,9 +146,11 @@ Phase 1 – Foundation (Completed)
 - Session model
 
 Phase 2 – Core Domain
-- Asset module
-- Work order module
-- Invite-based membership flow
+- Asset management module (Categories, Assets, CRUD)
+- Work order backend (Service, State Machine, Permissions)
+- Work order UI (In Progress)
+
+Invited users can self-register via invite tokens.
 
 Phase 3 – Engineering Depth
 - Full test coverage
