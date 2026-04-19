@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-    title: "Opscore",
+    title: { template: "%s - Opscore", default: "Opscore" },
     description: "A production-grade multi-tenant operations management platform",
 };
 
