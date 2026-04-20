@@ -1,11 +1,5 @@
-import { Skeleton } from "@/components/ui/skeleton"
+import PageSkeleton from "@/components/layout/page-skeleton"
 
 export default function AssetsLoading() {
-    return (
-        <div className="space-y-2">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-        </div>
-    )
+    return <PageSkeleton rowCount={3} actionCount={1} />
 }
