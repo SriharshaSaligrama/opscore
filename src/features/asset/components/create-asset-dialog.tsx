@@ -31,12 +31,7 @@ import {
 
 import { ActionState } from "@/lib/action-handler"
 import { useActionDialog } from "@/hooks/use-action-dialog"
-import { Asset } from "@/features/asset/asset-types"
-
-type Category = {
-    id: string
-    name: string
-}
+import { Asset, Category } from "@/features/asset/asset-types"
 
 const initialState: ActionState = {
     success: false,
