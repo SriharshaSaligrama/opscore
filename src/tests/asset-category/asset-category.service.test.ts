@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { createMembership, createUser } from "@/tests/factories/user.factory";
 import { createWorkspace } from "@/tests/factories/workspace.factory";
-import { Role } from "@prisma/client";
+import { DomainEntityType, Role } from "@prisma/client";
 import { assetCategoryService } from "@/features/asset-category/asset-category.service";
 import { assetService } from "@/features/asset/asset.service";
+import { DomainEventType } from "@/features/domain-events/domain-event.types";
+import { prisma } from "@/lib/prisma";
 
 describe("assetCategoryService.createCategory", () => {
     it("creates category successfully", async () => {
@@ -20,6 +22,32 @@ describe("assetCategoryService.createCategory", () => {
 
         expect(category.name).toBe("Electrical")
         expect(category.workspaceId).toBe(workspace.id)
+    })
+
+    it("records CATEGORY_CREATED domain event", async () => {
+        const user = await createUser()
+        const workspace = await createWorkspace()
+
+        await createMembership(user.id, workspace.id, Role.OWNER)
+
+        const category = await assetCategoryService.createCategory({
+            userId: user.id,
+            workspaceId: workspace.id,
+            name: "Electrical",
+        })
+
+        const event = await prisma.domainEvent.findFirst({
+            where: {
+                workspaceId: workspace.id,
+                entityType: DomainEntityType.ASSET_CATEGORY,
+                entityId: category.id,
+                type: DomainEventType.CATEGORY_CREATED,
+            },
+        })
+
+        expect(event).toBeTruthy()
+        expect(event?.actorId).toBe(user.id)
+        expect(event?.message).toBe("Category created")
     })
 
     it("allows manager to create category", async () => {
@@ -89,7 +117,43 @@ describe("assetCategoryService.createCategory", () => {
     })
 })
 
-describe("assetCategoryService.listCategeories", () => {
+describe("assetCategoryService.updateCategory", () => {
+    it("records CATEGORY_UPDATED domain event", async () => {
+        const workspace = await createWorkspace()
+        const owner = await createUser()
+
+        await createMembership(owner.id, workspace.id, Role.OWNER)
+
+        const category = await assetCategoryService.createCategory({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            name: "Electrical",
+        })
+
+        const updatedCategory = await assetCategoryService.updateCategory({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            categoryId: category.id,
+            name: "Updated Electrical",
+        })
+
+        const event = await prisma.domainEvent.findFirst({
+            where: {
+                workspaceId: workspace.id,
+                entityType: DomainEntityType.ASSET_CATEGORY,
+                entityId: category.id,
+                type: DomainEventType.CATEGORY_UPDATED,
+            },
+        })
+
+        expect(updatedCategory.name).toBe("Updated Electrical")
+        expect(event).toBeTruthy()
+        expect(event?.actorId).toBe(owner.id)
+        expect(event?.metadata).toEqual({ name: "Updated Electrical" })
+    })
+})
+
+describe("assetCategoryService.deleteCategory", () => {
     it("returns only categories from user's workspace", async () => {
         const userA = await createUser()
         const workspaceA = await createWorkspace()

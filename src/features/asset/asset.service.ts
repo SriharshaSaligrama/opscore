@@ -1,13 +1,16 @@
 import { prisma } from "@/lib/prisma"
 import { getServiceContext } from "@/lib/service-context"
 import { Permission } from "@/features/authorization/permissions"
+import { withTransaction } from "@/lib/transaction"
+import { domainEventService } from "@/features/domain-events/domain-event.service"
+import { DomainEventType } from "@/features/domain-events/domain-event.types"
 import {
     BadRequestError,
     ConflictError,
     ForbiddenError,
     NotFoundError,
 } from "@/lib/errors"
-import { AssetStatus, Prisma } from "@prisma/client"
+import { AssetStatus, DomainEntityType, Prisma } from "@prisma/client"
 
 const ASSET_NAME_MAX_LENGTH = 30
 
@@ -74,25 +77,43 @@ export const assetService = {
             throw new ConflictError("Asset already exists")
         }
 
-        try {
-            return await prisma.asset.create({
-                data: {
-                    name,
-                    categoryId,
-                    workspaceId: ctx.membership.workspaceId,
-                    createdBy: ctx.membership.userId,
-                },
-                include: {
-                    category: true,
-                },
-            })
-        } catch (error) {
-            if (isUniqueConstraintError(error)) {
-                throw new ConflictError("Asset already exists")
-            }
+        return await withTransaction(async (db) => {
+            try {
+                const asset = await db.asset.create({
+                    data: {
+                        name,
+                        categoryId,
+                        workspaceId: ctx.membership.workspaceId,
+                        createdBy: ctx.membership.userId,
+                    },
+                    include: {
+                        category: true,
+                    },
+                })
 
-            throw error
-        }
+                await domainEventService.record({
+                    db,
+                    workspaceId: ctx.membership.workspaceId,
+                    entityType: DomainEntityType.ASSET,
+                    entityId: asset.id,
+                    actorId: ctx.membership.userId,
+                    type: DomainEventType.ASSET_CREATED,
+                    message: "Asset created",
+                    metadata: {
+                        name,
+                        categoryId,
+                    },
+                })
+
+                return asset
+            } catch (error) {
+                if (isUniqueConstraintError(error)) {
+                    throw new ConflictError("Asset already exists")
+                }
+
+                throw error
+            }
+        })
     },
 
     async listAssets({
@@ -206,22 +227,41 @@ export const assetService = {
             }
         }
 
-        try {
-            return await prisma.asset.update({
-                where: { id: assetId },
-                data: {
-                    ...(name !== undefined && { name }),
-                    ...(categoryId !== undefined && { categoryId }),
-                    ...(status !== undefined && { status }),
-                },
-            })
-        } catch (error) {
-            if (isUniqueConstraintError(error)) {
-                throw new ConflictError("Asset already exists")
-            }
+        return await withTransaction(async (db) => {
+            try {
+                const updatedAsset = await db.asset.update({
+                    where: { id: assetId },
+                    data: {
+                        ...(name !== undefined && { name }),
+                        ...(categoryId !== undefined && { categoryId }),
+                        ...(status !== undefined && { status }),
+                    },
+                })
 
-            throw error
-        }
+                await domainEventService.record({
+                    db,
+                    workspaceId: ctx.membership.workspaceId,
+                    entityType: DomainEntityType.ASSET,
+                    entityId: assetId,
+                    actorId: ctx.membership.userId,
+                    type: DomainEventType.ASSET_UPDATED,
+                    message: "Asset updated",
+                    metadata: {
+                        ...(name !== undefined && { name }),
+                        ...(categoryId !== undefined && { categoryId }),
+                        ...(status !== undefined && { status }),
+                    },
+                })
+
+                return updatedAsset
+            } catch (error) {
+                if (isUniqueConstraintError(error)) {
+                    throw new ConflictError("Asset already exists")
+                }
+
+                throw error
+            }
+        })
     },
 
     async archiveAsset({
@@ -265,9 +305,23 @@ export const assetService = {
             )
         }
 
-        return prisma.asset.update({
-            where: { id: assetId },
-            data: { isDeleted: true },
+        return await withTransaction(async (db) => {
+            const updatedAsset = await db.asset.update({
+                where: { id: assetId },
+                data: { isDeleted: true },
+            })
+
+            await domainEventService.record({
+                db,
+                workspaceId: ctx.membership.workspaceId,
+                entityType: DomainEntityType.ASSET,
+                entityId: assetId,
+                actorId: ctx.membership.userId,
+                type: DomainEventType.ASSET_ARCHIVED,
+                message: "Asset archived",
+            })
+
+            return updatedAsset
         })
     },
 }

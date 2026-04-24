@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { createWorkspace } from "@/tests/factories/workspace.factory";
 import { createMembership, createUser } from "@/tests/factories/user.factory";
-import { AssetStatus, Role } from "@prisma/client";
+import { AssetStatus, DomainEntityType, Role } from "@prisma/client";
 import { assetCategoryService } from "@/features/asset-category/asset-category.service";
 import { assetService } from "@/features/asset/asset.service";
+import { DomainEventType } from "@/features/domain-events/domain-event.types";
 import { workOrderService } from "@/features/work-order/work-order.service";
 import { prisma } from "@/lib/prisma";
 
@@ -37,6 +38,39 @@ describe("assetService.createAsset", () => {
         expect(asset.categoryId).toBe(category.id)
         expect(asset.workspaceId).toBe(workspace.id)
         expect(asset.createdBy).toBe(owner.id)
+    })
+
+    it("records ASSET_CREATED domain event", async () => {
+        const workspace = await createWorkspace()
+        const owner = await createUser()
+
+        await createMembership(owner.id, workspace.id, Role.OWNER)
+
+        const category = await assetCategoryService.createCategory({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            name: "Electrical",
+        })
+
+        const asset = await assetService.createAsset({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            name: "Generator",
+            categoryId: category.id,
+        })
+
+        const event = await prisma.domainEvent.findFirst({
+            where: {
+                workspaceId: workspace.id,
+                entityType: DomainEntityType.ASSET,
+                entityId: asset.id,
+                type: DomainEventType.ASSET_CREATED,
+            },
+        })
+
+        expect(event).toBeTruthy()
+        expect(event?.actorId).toBe(owner.id)
+        expect(event?.message).toBe("Asset created")
     })
 
     it("rejects if category belongs to another workspace", async () => {
@@ -189,6 +223,19 @@ describe("assetService.createAsset", () => {
             assetId: asset.id,
         })
 
+        const event = await prisma.domainEvent.findFirst({
+            where: {
+                workspaceId: workspace.id,
+                entityType: DomainEntityType.ASSET,
+                entityId: asset.id,
+                type: DomainEventType.ASSET_ARCHIVED,
+            },
+        })
+
+        expect(event).toBeTruthy()
+        expect(event?.actorId).toBe(owner.id)
+        expect(event?.message).toBe("Asset archived")
+
         const recreated = await assetService.createAsset({
             userId: owner.id,
             workspaceId: workspace.id,
@@ -235,6 +282,49 @@ describe("assetService.updateAsset", () => {
 
         expect(updatedAsset.name).toBe("Main Generator")
         expect(updatedAsset.status).toBe(AssetStatus.INACTIVE)
+    })
+
+    it("records ASSET_UPDATED domain event", async () => {
+        const workspace = await createWorkspace()
+        const owner = await createUser()
+
+        await createMembership(owner.id, workspace.id, Role.OWNER)
+
+        const category = await assetCategoryService.createCategory({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            name: "Electrical",
+        })
+
+        const asset = await assetService.createAsset({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            name: "Generator",
+            categoryId: category.id,
+        })
+
+        const updatedAsset = await assetService.updateAsset({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            assetId: asset.id,
+            name: "Main Generator",
+            status: AssetStatus.INACTIVE,
+        })
+
+        const event = await prisma.domainEvent.findFirst({
+            where: {
+                workspaceId: workspace.id,
+                entityType: DomainEntityType.ASSET,
+                entityId: asset.id,
+                type: DomainEventType.ASSET_UPDATED,
+            },
+        })
+
+        expect(updatedAsset.name).toBe("Main Generator")
+        expect(updatedAsset.status).toBe(AssetStatus.INACTIVE)
+        expect(event).toBeTruthy()
+        expect(event?.actorId).toBe(owner.id)
+        expect(event?.metadata).toEqual({ name: "Main Generator", status: AssetStatus.INACTIVE })
     })
 
     it("allows category change within workspace", async () => {
