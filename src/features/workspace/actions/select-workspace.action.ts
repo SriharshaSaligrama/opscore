@@ -3,6 +3,7 @@
 import { workspaceService } from "@/features/workspace/workspace.service"
 import { getCurrentSession } from "@/lib/auth"
 import { redirect } from "next/navigation"
+import { revalidatePath } from "next/cache"
 import { AppError } from "@/lib/errors"
 
 export async function selectWorkspaceAction(_: unknown, formData: FormData) {
@@ -22,5 +23,7 @@ export async function selectWorkspaceAction(_: unknown, formData: FormData) {
         }
         return { error: "Failed to select workspace" }
     }
+    revalidatePath("/dashboard")
+    revalidatePath("/settings")
     redirect("/dashboard")
 }

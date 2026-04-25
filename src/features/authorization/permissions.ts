@@ -1,5 +1,6 @@
 export enum Permission {
     // Workspace Permissions
+    CREATE_WORKSPACE = "CREATE_WORKSPACE",
     MANAGE_WORKSPACE = "MANAGE_WORKSPACE",
 
     // Asset Permissions
@@ -29,6 +30,7 @@ import { Role } from "@prisma/client"
 
 export const RolePermissions: Record<Role, Permission[]> = {
     OWNER: [
+        Permission.CREATE_WORKSPACE,
         Permission.MANAGE_WORKSPACE,
         Permission.VIEW_ASSET,
         Permission.CREATE_ASSET,

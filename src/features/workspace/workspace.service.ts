@@ -5,7 +5,7 @@ import { Permission } from "@/features/authorization/permissions"
 import { authService } from "@/features/auth/auth.service"
 import { domainEventService } from "@/features/domain-events/domain-event.service"
 import { DomainEventType } from "@/features/domain-events/domain-event.types"
-import { DomainEntityType } from "@prisma/client"
+import { DomainEntityType, Role } from "@prisma/client"
 
 export const workspaceService = {
     async selectWorkspace(
@@ -157,5 +157,59 @@ export const workspaceService = {
         })
 
         return updatedWorkspace
+    },
+
+    async createWorkspace({
+        userId,
+        name,
+    }: {
+        userId: string
+        name: string
+    }) {
+        const normalizedName = name.trim()
+
+        if (!normalizedName) {
+            throw new BadRequestError("Workspace name is required")
+        }
+
+        if (normalizedName.length > 30) {
+            throw new BadRequestError("Workspace name too long")
+        }
+
+        const existing = await prisma.workspace.findFirst({
+            where: { name: normalizedName }
+        })
+
+        if (existing) {
+            throw new ConflictError("Workspace name already exists")
+        }
+
+        const workspace = await prisma.workspace.create({
+            data: { name: normalizedName }
+        })
+
+        await prisma.membership.create({
+            data: {
+                userId,
+                workspaceId: workspace.id,
+                role: Role.OWNER
+            }
+        })
+
+        await domainEventService.record({
+            workspaceId: workspace.id,
+            entityType: DomainEntityType.WORKSPACE,
+            entityId: workspace.id,
+            actorId: userId,
+            type: DomainEventType.WORKSPACE_CREATED,
+            metadata: {
+                name: workspace.name
+            },
+        })
+
+        return {
+            id: workspace.id,
+            name: workspace.name
+        }
     }
 }

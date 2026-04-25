@@ -1,14 +1,23 @@
 "use client"
 
-import { useActionState } from "react"
+import { useActionState, useState } from "react"
 import { selectWorkspaceAction } from "@/features/workspace/actions/select-workspace.action"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { useState } from "react"
 import AuthShell from "@/features/auth/components/auth-shell"
+import CreateWorkspaceDialog from "./create-workspace-dialog"
 
-export default function SelectWorkspaceClient({ workspaces }: { workspaces: { id: string; name: string }[] }) {
+export default function SelectWorkspaceClient({
+    workspaces,
+    canCreateWorkspace,
+    initialCreateOpen,
+}: {
+    workspaces: { id: string; name: string }[]
+    canCreateWorkspace?: boolean
+    initialCreateOpen?: boolean
+}) {
     const [query, setQuery] = useState("")
+    const [createOpen, setCreateOpen] = useState(initialCreateOpen ?? false)
     const [state, formAction, pending] = useActionState(selectWorkspaceAction, null)
 
     const filtered = workspaces.filter(w =>
@@ -32,7 +41,6 @@ export default function SelectWorkspaceClient({ workspaces }: { workspaces: { id
                 {filtered.map(w => (
                     <form key={w.id} action={formAction}>
                         <input type="hidden" name="workspaceId" value={w.id} />
-
                         <Button
                             variant="outline"
                             className="w-full justify-start"
@@ -44,9 +52,24 @@ export default function SelectWorkspaceClient({ workspaces }: { workspaces: { id
                 ))}
             </div>
 
+            {canCreateWorkspace && (
+                <Button
+                    variant="ghost"
+                    className="w-full justify-start mt-2"
+                    onClick={() => setCreateOpen(true)}
+                >
+                    + Create New Workspace
+                </Button>
+            )}
+
             {state?.error && (
                 <p className="text-sm text-red-500">{state.error}</p>
             )}
+
+            <CreateWorkspaceDialog
+                open={createOpen}
+                onOpenChange={setCreateOpen}
+            />
         </AuthShell>
     )
 }
