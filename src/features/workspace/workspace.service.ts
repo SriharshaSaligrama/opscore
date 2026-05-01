@@ -1,11 +1,19 @@
 import { prisma } from "@/lib/prisma"
-import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from "@/lib/errors"
+import {
+    BadRequestError,
+    ConflictError,
+    ForbiddenError,
+    NotFoundError,
+} from "@/lib/errors"
 import { getServiceContext } from "@/lib/service-context"
 import { Permission } from "@/features/authorization/permissions"
 import { authService } from "@/features/auth/auth.service"
 import { domainEventService } from "@/features/domain-events/domain-event.service"
-import { DomainEventType } from "@/features/domain-events/domain-event.types"
-import { DomainEntityType, Role } from "@prisma/client"
+import { Role } from "@prisma/client"
+import { WORKSPACE_NAME_MAX_LENGTH } from "@/features/workspace/workspace.schemas"
+import { runWorkspaceMutation } from "@/lib/service-mutation"
+import { domainEvents } from "@/features/domain-events/domain-event.builders"
+import { workspaceRepository } from "@/features/workspace/workspace.repository"
 
 export const workspaceService = {
     async selectWorkspace(
@@ -17,17 +25,10 @@ export const workspaceService = {
         const session = await authService.validateSession(sessionId)
 
         // 2️⃣ Validate membership
-        const membership = await prisma.membership.findUnique({
-            where: {
-                userId_workspaceId: {
-                    userId: session.userId,
-                    workspaceId
-                }
-            },
-            include: {
-                workspace: true
-            }
-        })
+        const membership = await workspaceRepository.findMembership(
+            session.userId,
+            workspaceId
+        )
 
         if (!membership) {
             throw new ForbiddenError("Invalid workspace")
@@ -48,10 +49,7 @@ export const workspaceService = {
     async getUserWorkspaces(sessionId: string) {
         const session = await authService.validateSession(sessionId)
 
-        const memberships = await prisma.membership.findMany({
-            where: { userId: session.userId },
-            include: { workspace: true }
-        })
+        const memberships = await workspaceRepository.listMembershipWorkspaces(session.userId)
 
         return memberships.map(m => ({
             id: m.workspace.id,
@@ -64,22 +62,13 @@ export const workspaceService = {
         workspaceId: string
     ): Promise<boolean> {
 
-        const membership = await prisma.membership.findUnique({
-            where: {
-                userId_workspaceId: {
-                    userId,
-                    workspaceId
-                }
-            }
-        })
+        const membership = await workspaceRepository.findMembership(userId, workspaceId)
 
         return !!membership
     },
 
     async getActiveWorkSpaceDetails(workspaceId: string) {
-        const workspace = await prisma.workspace.findUnique({
-            where: { id: workspaceId },
-        })
+        const workspace = await workspaceRepository.findById(workspaceId)
 
         if (!workspace) {
             throw new NotFoundError("Workspace not found")
@@ -106,9 +95,7 @@ export const workspaceService = {
             Permission.MANAGE_WORKSPACE
         )
 
-        const workspace = await prisma.workspace.findUnique({
-            where: { id: ctx.membership.workspaceId },
-        })
+        const workspace = await workspaceRepository.findById(ctx.membership.workspaceId)
 
         if (!workspace) {
             throw new NotFoundError("Workspace not found")
@@ -118,12 +105,7 @@ export const workspaceService = {
             return workspace
         }
 
-        const existing = await prisma.workspace.findFirst({
-            where: {
-                name,
-                NOT: { id: workspaceId }
-            }
-        })
+        const existing = await workspaceRepository.findByNameExcluding(name, workspaceId)
 
         if (existing) {
             throw new ConflictError("Workspace name already exists")
@@ -135,28 +117,28 @@ export const workspaceService = {
             throw new BadRequestError("Workspace name cannot be empty")
         }
 
-        if (name.length > 120) {
+        if (name.length > WORKSPACE_NAME_MAX_LENGTH) {
             throw new BadRequestError("Workspace name too long")
         }
 
-        const updatedWorkspace = await prisma.workspace.update({
-            where: { id: ctx.membership.workspaceId },
-            data: { name },
-        })
+        return runWorkspaceMutation(async (db) => {
+            const updatedWorkspace = await db.workspace.update({
+                where: { id: ctx.membership.workspaceId },
+                data: { name },
+            })
 
-        await domainEventService.record({
-            workspaceId: ctx.membership.workspaceId,
-            entityType: DomainEntityType.WORKSPACE,
-            entityId: ctx.membership.workspaceId,
-            actorId: ctx.membership.userId,
-            type: DomainEventType.WORKSPACE_RENAMED,
-            metadata: {
-                oldName: workspace.name,
-                newName: name
-            },
+            return updatedWorkspace
+        }, {
+            event: (_workspace, db) => domainEventService.record({
+                db,
+                ...domainEvents.workspaceRenamed({
+                    workspaceId: ctx.membership.workspaceId,
+                    actorId: ctx.membership.userId,
+                    oldName: workspace.name,
+                    newName: name,
+                }),
+            }),
         })
-
-        return updatedWorkspace
     },
 
     async createWorkspace({
@@ -172,39 +154,39 @@ export const workspaceService = {
             throw new BadRequestError("Workspace name is required")
         }
 
-        if (normalizedName.length > 30) {
+        if (normalizedName.length > WORKSPACE_NAME_MAX_LENGTH) {
             throw new BadRequestError("Workspace name too long")
         }
 
-        const existing = await prisma.workspace.findFirst({
-            where: { name: normalizedName }
-        })
+        const existing = await workspaceRepository.findByName(normalizedName)
 
         if (existing) {
             throw new ConflictError("Workspace name already exists")
         }
 
-        const workspace = await prisma.workspace.create({
-            data: { name: normalizedName }
-        })
+        const workspace = await runWorkspaceMutation(async (db) => {
+            const workspace = await db.workspace.create({
+                data: { name: normalizedName }
+            })
 
-        await prisma.membership.create({
-            data: {
-                userId,
-                workspaceId: workspace.id,
-                role: Role.OWNER
-            }
-        })
+            await db.membership.create({
+                data: {
+                    userId,
+                    workspaceId: workspace.id,
+                    role: Role.OWNER
+                }
+            })
 
-        await domainEventService.record({
-            workspaceId: workspace.id,
-            entityType: DomainEntityType.WORKSPACE,
-            entityId: workspace.id,
-            actorId: userId,
-            type: DomainEventType.WORKSPACE_CREATED,
-            metadata: {
-                name: workspace.name
-            },
+            return workspace
+        }, {
+            event: (workspace, db) => domainEventService.record({
+                db,
+                ...domainEvents.workspaceCreated({
+                    workspaceId: workspace.id,
+                    actorId: userId,
+                    name: workspace.name,
+                }),
+            }),
         })
 
         return {

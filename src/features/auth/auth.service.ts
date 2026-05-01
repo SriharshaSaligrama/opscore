@@ -2,7 +2,9 @@ import bcrypt from "bcrypt"
 import { prisma } from "@/lib/prisma"
 import { Role } from "@prisma/client"
 import { ConflictError, UnauthorizedError } from "@/lib/errors"
-import { withTransaction } from "@/lib/transaction"
+import { domainEventService } from "@/features/domain-events/domain-event.service"
+import { runWorkspaceMutation } from "@/lib/service-mutation"
+import { domainEvents } from "@/features/domain-events/domain-event.builders"
 
 type SafeUser = {
     id: string
@@ -43,7 +45,7 @@ export const authService = {
 
         const passwordHash = await bcrypt.hash(password, 10)
 
-        return withTransaction(async (db) => {
+        return runWorkspaceMutation(async (db) => {
             const user = await db.user.create({
                 data: { name, email, passwordHash }
             })
@@ -61,6 +63,28 @@ export const authService = {
             })
 
             return { user, workspace }
+        }, {
+            event: ({ user, workspace }, db) => Promise.all([
+                domainEventService.record({
+                    db,
+                    ...domainEvents.workspaceCreated({
+                        workspaceId: workspace.id,
+                        actorId: user.id,
+                        name: workspace.name,
+                        source: "signup",
+                    }),
+                }),
+                domainEventService.record({
+                    db,
+                    ...domainEvents.memberAdded({
+                        workspaceId: workspace.id,
+                        actorId: user.id,
+                        userId: user.id,
+                        role: Role.OWNER,
+                        source: "signup",
+                    }),
+                }),
+            ]).then(() => undefined),
         })
     },
 

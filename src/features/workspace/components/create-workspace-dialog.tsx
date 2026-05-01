@@ -10,6 +10,8 @@ import {
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { ActionSubmitButton } from "@/components/forms/action-submit-button"
+import { ActionDialogForm } from "@/components/forms/action-dialog-form"
 
 import { ActionState } from "@/lib/action-handler"
 import { useActionDialog } from "@/hooks/use-action-dialog"
@@ -51,26 +53,32 @@ export default function CreateWorkspaceDialog({
                     </DialogDescription>
                 </DialogHeader>
 
-                <form ref={formRef} action={handleAction} className="space-y-4">
+                <ActionDialogForm
+                    formRef={formRef}
+                    action={handleAction}
+                    state={state}
+                    pending={pending}
+                    label="Create Workspace"
+                    pendingLabel="Creating..."
+                    footer={
+                        <div className="flex justify-end gap-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => onOpenChange(false)}
+                            >
+                                Cancel
+                            </Button>
+                            <ActionSubmitButton
+                                pending={pending}
+                                label="Create Workspace"
+                                pendingLabel="Creating..."
+                            />
+                        </div>
+                    }
+                >
                     <Input name="name" placeholder="Workspace name" autoFocus />
-
-                    {!state.success && state.error && (
-                        <p className="text-sm text-red-500">{state.error}</p>
-                    )}
-
-                    <div className="flex justify-end gap-2">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => onOpenChange(false)}
-                        >
-                            Cancel
-                        </Button>
-                        <Button type="submit" disabled={pending}>
-                            {pending ? "Creating..." : "Create Workspace"}
-                        </Button>
-                    </div>
-                </form>
+                </ActionDialogForm>
             </DialogContent>
         </Dialog>
     )

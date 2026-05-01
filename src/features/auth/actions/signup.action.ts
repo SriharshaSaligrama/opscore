@@ -1,19 +1,16 @@
 "use server"
 
 import { authService } from "@/features/auth/auth.service"
+import { signupSchema } from "@/features/auth/auth.schemas"
+import { createValidatedRedirectAction } from "@/lib/redirect-actions"
 import { cookies } from "next/headers"
-import { redirect } from "next/navigation"
-import { AppError } from "@/lib/errors"
 
-export async function signupAction(_: unknown, formData: FormData) {
-    try {
-        const name = formData.get("name") as string
-        const email = formData.get("email") as string
-        const password = formData.get("password") as string
+export const signupAction = createValidatedRedirectAction(
+    signupSchema,
+    async (data) => {
+        await authService.signup(data.name, data.email, data.password)
 
-        await authService.signup(name, email, password)
-
-        const login = await authService.login(email, password)
+        const login = await authService.login(data.email, data.password)
 
         const cookieStore = await cookies()
         cookieStore.set("sessionId", login.sessionId, {
@@ -21,11 +18,7 @@ export async function signupAction(_: unknown, formData: FormData) {
             path: "/",
         })
 
-    } catch (err) {
-        if (err instanceof AppError) {
-            return { error: err.message }
-        }
-        return { error: "Signup failed" }
-    }
-    redirect("/dashboard")
-}
+        return "/dashboard"
+    },
+    "Signup failed"
+)

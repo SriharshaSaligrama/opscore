@@ -1,27 +1,25 @@
 "use server"
 
 import { z } from "zod"
-import { createValidatedAction } from "@/lib/validated-action"
-import { getWorkspaceContext } from "@/features/workspace/workspace.context"
+import { createValidatedWorkspaceServerAction } from "@/lib/server-actions"
 import { assetService } from "@/features/asset/asset.service"
-import { revalidatePath } from "next/cache"
+import { invalidateAssets } from "@/features/asset/asset.cache"
+import { assetNameSchema } from "@/features/asset/asset.schemas"
 
-export const createAssetAction = createValidatedAction(
+export const createAssetAction = createValidatedWorkspaceServerAction(
     z.object({
-        name: z.string().trim().min(1, "Asset name is required").max(30, "Asset name too long"),
+        name: assetNameSchema,
         categoryId: z.string(),
     }),
-    async (data) => {
-        const { session, workspace } = await getWorkspaceContext()
-
+    async (data, { userId, workspaceId }) => {
         const asset = await assetService.createAsset({
-            userId: session.user.id,
-            workspaceId: workspace.id,
-            name: data.name.trim(),
+            userId,
+            workspaceId,
+            name: data.name,
             categoryId: data.categoryId,
         })
 
-        revalidatePath("/assets")
+        invalidateAssets()
 
         return asset
     }

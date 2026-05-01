@@ -26,12 +26,17 @@ export default function CategoriesTable({
     categories,
     onCategoryUpdated,
     onCategoryDeleted,
+    canUpdateCategory = true,
+    canArchiveCategory = true,
 }: {
     categories: Category[]
     onCategoryUpdated: (categoryId: string, updates: Partial<Category>) => void
     onCategoryDeleted?: (categoryId: string) => void
+    canUpdateCategory?: boolean
+    canArchiveCategory?: boolean
 }) {
     const categoriesToRender = categories
+    const canShowActions = canUpdateCategory || canArchiveCategory
 
     if (categories.length === 0) {
         return <CategoriesEmpty />
@@ -43,9 +48,11 @@ export default function CategoriesTable({
                 <TableHeader>
                     <TableRow>
                         <TableHead>Name</TableHead>
-                        <TableHead className="text-right w-30">
-                            Actions
-                        </TableHead>
+                        {canShowActions && (
+                            <TableHead className="text-right w-30">
+                                Actions
+                            </TableHead>
+                        )}
                     </TableRow>
                 </TableHeader>
 
@@ -57,23 +64,29 @@ export default function CategoriesTable({
                                     {c.name}
                                 </TableCell>
 
-                                <TableCell className="text-right space-x-2 flex items-center justify-end">
-                                    <EditCategoryDialog
-                                        category={c}
-                                        key={c.id}
-                                        onOptimisticUpdate={(updates) => onCategoryUpdated(c.id, updates)}
-                                    >
-                                        <Button size="icon" variant="outline" className="h-8 w-8">
-                                            <Pencil className="h-4 w-4" />
-                                        </Button>
-                                    </EditCategoryDialog>
+                                {canShowActions && (
+                                    <TableCell className="text-right space-x-2 flex items-center justify-end">
+                                        {canUpdateCategory && (
+                                            <EditCategoryDialog
+                                                category={c}
+                                                key={c.id}
+                                                onOptimisticUpdate={(updates) => onCategoryUpdated(c.id, updates)}
+                                            >
+                                                <Button size="icon" variant="outline" className="h-8 w-8">
+                                                    <Pencil className="h-4 w-4" />
+                                                </Button>
+                                            </EditCategoryDialog>
+                                        )}
 
-                                    <DeleteCategoryDialog category={c} onDelete={onCategoryDeleted}>
-                                        <Button size="icon" variant="destructive" className="h-8 w-8">
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </DeleteCategoryDialog>
-                                </TableCell>
+                                        {canArchiveCategory && (
+                                            <DeleteCategoryDialog category={c} onDelete={onCategoryDeleted}>
+                                                <Button size="icon" variant="destructive" className="h-8 w-8">
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </DeleteCategoryDialog>
+                                        )}
+                                    </TableCell>
+                                )}
                             </TableRow>
                         )
                     })}

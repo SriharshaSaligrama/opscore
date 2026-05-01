@@ -1,24 +1,22 @@
 "use server"
 
 import { z } from "zod"
-import { createValidatedAction } from "@/lib/validated-action"
-import { getAuthContext } from "@/features/auth/auth.context"
+import { createValidatedAuthenticatedServerAction } from "@/lib/server-actions"
 import { workspaceService } from "@/features/workspace/workspace.service"
-import { revalidatePath } from "next/cache"
+import { invalidateWorkspaceSelection } from "@/features/workspace/workspace.cache"
+import { workspaceNameSchema } from "@/features/workspace/workspace.schemas"
 
-export const createWorkspaceAction = createValidatedAction(
+export const createWorkspaceAction = createValidatedAuthenticatedServerAction(
     z.object({
-        name: z.string().trim().min(1, "Workspace name is required").max(120, "Workspace name too long"),
+        name: workspaceNameSchema,
     }),
-    async (data) => {
-        const { session } = await getAuthContext()
-
+    async (data, { userId }) => {
         const workspace = await workspaceService.createWorkspace({
-            userId: session.user.id,
-            name: data.name.trim(),
+            userId,
+            name: data.name,
         })
 
-        revalidatePath("/select-workspace")
+        invalidateWorkspaceSelection()
 
         return workspace
     }

@@ -1,27 +1,24 @@
 "use server"
 
-import { getWorkspaceContext } from "@/features/workspace/workspace.context"
 import { assetService } from "@/features/asset/asset.service"
-import { revalidatePath } from "next/cache"
+import { invalidateAssets } from "@/features/asset/asset.cache"
 import { AssetStatus } from "@prisma/client"
-import { createValidatedAction } from "@/lib/validated-action"
+import { createValidatedWorkspaceServerAction } from "@/lib/server-actions"
 import { z } from "zod"
 
-export const updateAssetStatusAction = createValidatedAction(
+export const updateAssetStatusAction = createValidatedWorkspaceServerAction(
     z.object({
         id: z.string(),
         status: z.enum(Object.values(AssetStatus)),
     }),
-    async (data) => {
-        const { session, workspace } = await getWorkspaceContext()
-
+    async (data, { userId, workspaceId }) => {
         await assetService.updateAsset({
-            userId: session.user.id,
-            workspaceId: workspace.id,
+            userId,
+            workspaceId,
             assetId: data.id,
             status: data.status,
         })
 
-        revalidatePath("/assets")
+        invalidateAssets()
     }
 )

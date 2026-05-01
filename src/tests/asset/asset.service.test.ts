@@ -198,6 +198,28 @@ describe("assetService.createAsset", () => {
         ).rejects.toThrow("Asset already exists")
     })
 
+    it("rejects asset names longer than 30 characters", async () => {
+        const workspace = await createWorkspace()
+        const owner = await createUser()
+
+        await createMembership(owner.id, workspace.id, Role.OWNER)
+
+        const category = await assetCategoryService.createCategory({
+            userId: owner.id,
+            workspaceId: workspace.id,
+            name: "Electrical",
+        })
+
+        await expect(
+            assetService.createAsset({
+                userId: owner.id,
+                workspaceId: workspace.id,
+                name: "A".repeat(31),
+                categoryId: category.id,
+            })
+        ).rejects.toThrow("Asset name too long")
+    })
+
     it("allows recreating asset name after archive", async () => {
         const workspace = await createWorkspace()
         const owner = await createUser()

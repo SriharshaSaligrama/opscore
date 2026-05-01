@@ -4,10 +4,12 @@ import { authService } from "@/features/auth/auth.service"
 import { createWorkspace } from "@/tests/factories/workspace.factory"
 import { createUser, createMembership } from "@/tests/factories/user.factory"
 import { UnauthorizedError, ConflictError } from "@/lib/errors"
+import { DomainEntityType } from "@prisma/client"
+import { DomainEventType } from "@/features/domain-events/domain-event.types"
 
 describe("authService.signup", () => {
     it("creates user, workspace and owner membership", async () => {
-        await authService.signup(
+        const result = await authService.signup(
             "John",
             "john@test.com",
             "password"
@@ -24,6 +26,46 @@ describe("authService.signup", () => {
         })
 
         expect(membership?.role).toBe("OWNER")
+        expect(membership?.workspaceId).toBe(result.workspace.id)
+    })
+
+    it("records workspace created and member added domain events", async () => {
+        const { user, workspace } = await authService.signup(
+            "John",
+            "events@test.com",
+            "password"
+        )
+
+        const events = await prisma.domainEvent.findMany({
+            where: { workspaceId: workspace.id },
+            orderBy: { createdAt: "asc" },
+        })
+
+        expect(events).toHaveLength(2)
+
+        expect(events[0]).toMatchObject({
+            entityType: DomainEntityType.WORKSPACE,
+            entityId: workspace.id,
+            actorId: user.id,
+            type: DomainEventType.WORKSPACE_CREATED,
+            message: "Workspace created",
+            metadata: {
+                name: workspace.name,
+                source: "signup",
+            },
+        })
+
+        expect(events[1]).toMatchObject({
+            entityType: DomainEntityType.MEMBERSHIP,
+            entityId: user.id,
+            actorId: user.id,
+            type: DomainEventType.MEMBER_ADDED,
+            message: "Workspace owner added",
+            metadata: {
+                role: "OWNER",
+                source: "signup",
+            },
+        })
     })
 
     it("throws if email already exists", async () => {

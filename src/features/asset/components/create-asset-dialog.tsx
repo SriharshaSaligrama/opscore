@@ -14,6 +14,7 @@ import {
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { ActionDialogForm } from "@/components/forms/action-dialog-form"
 
 import {
     Popover,
@@ -84,8 +85,16 @@ export default function CreateAssetDialog({
                         You need at least one category before creating an asset.
                     </p>
                 ) : (
-                    <form ref={formRef} action={handleAction} className="space-y-4">
-
+                    <ActionDialogForm
+                        formRef={formRef}
+                        action={handleAction}
+                        state={state}
+                        pending={pending}
+                        label="Create Asset"
+                        pendingLabel="Creating..."
+                        disabled={!selectedCategory}
+                        hiddenFields={{ categoryId: selectedCategory?.id || "" }}
+                    >
                         {/* Name */}
                         <Input name="name" placeholder="Asset name" />
 
@@ -125,27 +134,7 @@ export default function CreateAssetDialog({
                             </PopoverContent>
                         </Popover>
 
-                        <input
-                            type="hidden"
-                            name="categoryId"
-                            value={selectedCategory?.id || ""}
-                        />
-
-                        {!state.success && state.error && (
-                            <p className="text-sm text-red-500">{state.error}</p>
-                        )}
-
-                        <Button
-                            type="submit"
-                            disabled={pending || !selectedCategory}
-                            className="w-full"
-                        >
-                            {pending && (
-                                <span className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
-                            )}
-                            {pending ? "Creating..." : "Create Asset"}
-                        </Button>
-                    </form>
+                    </ActionDialogForm>
                 )}
             </DialogContent>
         </Dialog>

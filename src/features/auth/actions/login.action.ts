@@ -1,52 +1,28 @@
 "use server"
 
 import { authService } from "@/features/auth/auth.service"
+import { loginSchema } from "@/features/auth/auth.schemas"
+import { createValidatedRedirectAction } from "@/lib/redirect-actions"
 import { cookies } from "next/headers"
-import { redirect } from "next/navigation"
-import { z } from "zod"
-import { AppError } from "@/lib/errors"
 
-const schema = z.object({
-    email: z.email(),
-    password: z.string().min(1),
-})
+export const loginAction = createValidatedRedirectAction(
+    loginSchema,
+    async (data) => {
+        const result = await authService.login(data.email, data.password)
 
-export async function loginAction(_: unknown, formData: FormData) {
-    const parsed = schema.safeParse({
-        email: formData.get("email"),
-        password: formData.get("password"),
-    })
+        const cookieStore = await cookies()
 
-    if (!parsed.success) {
-        return { error: "Invalid input" }
-    }
+        cookieStore.set("sessionId", result.sessionId, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            path: "/",
+        })
 
-    let result
+        if (result.type === "NO_WORKSPACE") return "/no-workspace"
+        if (result.type === "MULTIPLE_WORKSPACES") return "/select-workspace"
 
-    try {
-        result = await authService.login(
-            parsed.data.email,
-            parsed.data.password
-        )
-    } catch (err) {
-        if (err instanceof AppError) {
-            return { error: err.message }
-        }
-        return { error: "Something went wrong" }
-    }
-
-    const cookieStore = await cookies()
-
-    cookieStore.set("sessionId", result.sessionId, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        path: "/",
-    })
-
-    // ✅ redirect OUTSIDE try/catch
-    if (result.type === "NO_WORKSPACE") redirect("/no-workspace")
-    if (result.type === "MULTIPLE_WORKSPACES") redirect("/select-workspace")
-
-    redirect("/dashboard")
-}
+        return "/dashboard"
+    },
+    "Something went wrong"
+)

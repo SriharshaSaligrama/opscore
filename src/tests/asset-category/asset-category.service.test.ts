@@ -86,6 +86,21 @@ describe("assetCategoryService.createCategory", () => {
         ).rejects.toThrow()
     })
 
+    it("rejects category names longer than 30 characters", async () => {
+        const user = await createUser()
+        const workspace = await createWorkspace()
+
+        await createMembership(user.id, workspace.id, Role.OWNER)
+
+        await expect(
+            assetCategoryService.createCategory({
+                userId: user.id,
+                workspaceId: workspace.id,
+                name: "A".repeat(31),
+            })
+        ).rejects.toThrow("Category name too long")
+    })
+
     it("rejects insufficient permission (viewer)", async () => {
         const user = await createUser()
         const workspace = await createWorkspace()

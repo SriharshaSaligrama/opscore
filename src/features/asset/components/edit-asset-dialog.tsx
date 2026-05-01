@@ -14,9 +14,9 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { ActionDialogForm } from "@/components/forms/action-dialog-form"
 
 import {
     Select,
@@ -84,9 +84,17 @@ export default function EditAssetDialog({
                     </DialogDescription>
                 </DialogHeader>
 
-                <form ref={formRef} action={handleAction} className="space-y-5">
-                    <input type="hidden" name="id" value={asset.id} />
-
+                <ActionDialogForm
+                    formRef={formRef}
+                    action={handleAction}
+                    state={state}
+                    pending={pending}
+                    label="Update Asset"
+                    pendingLabel="Updating..."
+                    disabled={isUpdating}
+                    className="space-y-5"
+                    hiddenFields={{ id: asset.id }}
+                >
                     {/* NAME */}
                     <div className="space-y-2">
                         <Label>Name</Label>
@@ -147,27 +155,12 @@ export default function EditAssetDialog({
                         </Select>
                     </div>
 
-                    {/* GLOBAL ERROR */}
-                    {!state.success && state.error && (
-                        <p className="text-sm text-red-500">
-                            {state.error}
-                        </p>
-                    )}
-
                     {isUpdating && (
                         <p className="text-xs text-muted-foreground">
                             Status is being updated. Please wait...
                         </p>
                     )}
-
-                    {/* SUBMIT */}
-                    <Button type="submit" disabled={pending || isUpdating} className="w-full">
-                        {pending && (
-                            <span className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
-                        )}
-                        {pending ? "Updating..." : "Update Asset"}
-                    </Button>
-                </form>
+                </ActionDialogForm>
             </DialogContent>
         </Dialog>
     )

@@ -1,27 +1,24 @@
 "use server"
 
 import { z } from "zod"
-import { createValidatedAction } from "@/lib/validated-action"
-import { getWorkspaceContext } from "@/features/workspace/workspace.context"
+import { createValidatedWorkspaceServerAction } from "@/lib/server-actions"
 import { assetCategoryService } from "@/features/asset-category/asset-category.service"
-import { revalidatePath } from "next/cache"
+import { invalidateCategoriesAndAssets } from "@/features/asset-category/asset-category.cache"
+import { categoryNameSchema } from "@/features/asset-category/asset-category.schemas"
 
-export const editCategoryAction = createValidatedAction(
+export const editCategoryAction = createValidatedWorkspaceServerAction(
     z.object({
         id: z.string(),
-        name: z.string().trim().min(1, "Category name is required").max(30, "Category name too long"),
+        name: categoryNameSchema,
     }),
-    async (data) => {
-        const { session, workspace } = await getWorkspaceContext()
-
+    async (data, { userId, workspaceId }) => {
         await assetCategoryService.updateCategory({
-            userId: session.user.id,
-            workspaceId: workspace.id,
+            userId,
+            workspaceId,
             categoryId: data.id,
-            name: data.name.trim(),
+            name: data.name,
         })
 
-        revalidatePath("/categories")
-        revalidatePath("/assets")
+        invalidateCategoriesAndAssets()
     }
 )

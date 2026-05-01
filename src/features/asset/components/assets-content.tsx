@@ -5,7 +5,13 @@ import { assetCategoryService } from "@/features/asset-category/asset-category.s
 import AssetsContentClient from "./assets-content-client"
 
 export default async function AssetsContent() {
-    const { session, workspace } = await getWorkspaceContext()
+    const {
+        session,
+        workspace,
+        canCreateAsset,
+        canUpdateAsset,
+        canArchiveAsset,
+    } = await getWorkspaceContext()
 
     const assets = await assetService.listAssets({
         userId: session.user.id,
@@ -17,5 +23,15 @@ export default async function AssetsContent() {
         workspaceId: workspace.id,
     })
 
-    return <AssetsContentClient initialAssets={assets} categories={categories} />
+    return (
+        <AssetsContentClient
+            initialAssets={assets}
+            categories={categories}
+            capabilities={{
+                canCreateAsset,
+                canUpdateAsset,
+                canArchiveAsset,
+            }}
+        />
+    )
 }

@@ -2,7 +2,7 @@
 
 import { workspaceService } from "./workspace.service"
 import { getAuthContext } from "@/features/auth/auth.context"
-import { revalidatePath } from "next/cache"
+import { invalidateWorkspaceLayout } from "@/features/workspace/workspace.cache"
 
 export async function selectWorkspace(workspaceId: string) {
     const { session } = await getAuthContext()
@@ -12,5 +12,5 @@ export async function selectWorkspace(workspaceId: string) {
         workspaceId
     )
 
-    revalidatePath("/", "layout")
+    invalidateWorkspaceLayout()
 }

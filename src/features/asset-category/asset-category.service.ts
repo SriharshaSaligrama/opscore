@@ -1,25 +1,15 @@
-import { prisma } from "@/lib/prisma"
 import { getServiceContext } from "@/lib/service-context"
 import { Permission } from "@/features/authorization/permissions"
-import { withTransaction } from "@/lib/transaction"
 import { domainEventService } from "@/features/domain-events/domain-event.service"
-import { DomainEventType } from "@/features/domain-events/domain-event.types"
+import { ensureWorkspaceEntity } from "@/lib/workspace-entity-guards"
+import { CATEGORY_NAME_MAX_LENGTH } from "@/features/asset-category/asset-category.schemas"
+import { domainEvents } from "@/features/domain-events/domain-event.builders"
+import { runWorkspaceMutation } from "@/lib/service-mutation"
+import { assetCategoryRepository } from "@/features/asset-category/asset-category.repository"
 import {
     BadRequestError,
     ConflictError,
-    ForbiddenError,
-    NotFoundError,
 } from "@/lib/errors"
-import { DomainEntityType, Prisma } from "@prisma/client"
-
-const CATEGORY_NAME_MAX_LENGTH = 30
-
-function isUniqueConstraintError(error: unknown) {
-    return (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === "P2002"
-    )
-}
 
 export const assetCategoryService = {
     async createCategory({
@@ -43,44 +33,33 @@ export const assetCategoryService = {
         if (name.length > CATEGORY_NAME_MAX_LENGTH)
             throw new BadRequestError("Category name too long")
 
-        const existing = await prisma.assetCategory.findFirst({
-            where: {
-                workspaceId: ctx.membership.workspaceId,
-                name: { equals: name, mode: "insensitive" },
-                isDeleted: false,
-            },
-        })
+        const existing = await assetCategoryRepository.findActiveByName(
+            ctx.membership.workspaceId,
+            name
+        )
 
         if (existing) throw new ConflictError("Category already exists")
 
-        return await withTransaction(async (db) => {
-            try {
-                const category = await db.assetCategory.create({
-                    data: {
-                        name,
-                        workspaceId: ctx.membership.workspaceId,
-                    },
-                })
-
-                await domainEventService.record({
-                    db,
+        return runWorkspaceMutation(async (db) => {
+            const category = await db.assetCategory.create({
+                data: {
+                    name,
                     workspaceId: ctx.membership.workspaceId,
-                    entityType: DomainEntityType.ASSET_CATEGORY,
-                    entityId: category.id,
+                },
+            })
+
+            return category
+        }, {
+            uniqueConflictMessage: "Category already exists",
+            event: (category, db) => domainEventService.record({
+                db,
+                ...domainEvents.categoryCreated({
+                    workspaceId: ctx.membership.workspaceId,
                     actorId: ctx.membership.userId,
-                    type: DomainEventType.CATEGORY_CREATED,
-                    message: "Category created",
-                    metadata: { name },
-                })
-
-                return category
-            } catch (error) {
-                if (isUniqueConstraintError(error)) {
-                    throw new ConflictError("Category already exists")
-                }
-
-                throw error
-            }
+                    categoryId: category.id,
+                    name,
+                }),
+            }),
         })
     },
 
@@ -93,13 +72,7 @@ export const assetCategoryService = {
     }) {
         const ctx = await getServiceContext(userId, workspaceId)
 
-        return prisma.assetCategory.findMany({
-            where: {
-                workspaceId: ctx.membership.workspaceId,
-                isDeleted: false,
-            },
-            orderBy: { createdAt: "asc" },
-        })
+        return assetCategoryRepository.listActive(ctx.membership.workspaceId)
     },
 
     async updateCategory({
@@ -119,20 +92,14 @@ export const assetCategoryService = {
             Permission.UPDATE_CATEGORY
         )
 
-        return await withTransaction(async (db) => {
-            const category = await db.assetCategory.findUnique({
-                where: { id: categoryId },
+        return runWorkspaceMutation(async (db) => {
+            const category = await assetCategoryRepository.findById(categoryId, db)
+
+            ensureWorkspaceEntity(category, ctx.membership.workspaceId, {
+                notFoundMessage: "Category not found",
+                invalidWorkspaceMessage: "Invalid category",
+                archivedMessage: "Cannot update archived category",
             })
-
-            if (!category) throw new NotFoundError("Category not found")
-
-            if (category.workspaceId !== ctx.membership.workspaceId) {
-                throw new ForbiddenError("Invalid category")
-            }
-
-            if (category.isDeleted) {
-                throw new ForbiddenError("Cannot update archived category")
-            }
 
             name = name.trim()
 
@@ -140,42 +107,32 @@ export const assetCategoryService = {
             if (name.length > CATEGORY_NAME_MAX_LENGTH)
                 throw new BadRequestError("Category name too long")
 
-            const existing = await db.assetCategory.findFirst({
-                where: {
-                    workspaceId: ctx.membership.workspaceId,
-                    name: { equals: name, mode: "insensitive" },
-                    NOT: { id: categoryId },
-                    isDeleted: false,
-                },
-            })
+            const existing = await assetCategoryRepository.findActiveByNameExcluding(
+                ctx.membership.workspaceId,
+                name,
+                categoryId,
+                db
+            )
 
             if (existing) throw new ConflictError("Category already exists")
 
-            try {
-                const updatedCategory = await db.assetCategory.update({
-                    where: { id: categoryId },
-                    data: { name },
-                })
+            const updatedCategory = await db.assetCategory.update({
+                where: { id: categoryId },
+                data: { name },
+            })
 
-                await domainEventService.record({
-                    db,
+            return updatedCategory
+        }, {
+            uniqueConflictMessage: "Category already exists",
+            event: (_category, db) => domainEventService.record({
+                db,
+                ...domainEvents.categoryUpdated({
                     workspaceId: ctx.membership.workspaceId,
-                    entityType: DomainEntityType.ASSET_CATEGORY,
-                    entityId: categoryId,
                     actorId: ctx.membership.userId,
-                    type: DomainEventType.CATEGORY_UPDATED,
-                    message: "Category updated",
-                    metadata: { name },
-                })
-
-                return updatedCategory
-            } catch (error) {
-                if (isUniqueConstraintError(error)) {
-                    throw new ConflictError("Category already exists")
-                }
-
-                throw error
-            }
+                    categoryId,
+                    name,
+                }),
+            }),
         })
     },
 
@@ -194,49 +151,37 @@ export const assetCategoryService = {
             Permission.ARCHIVE_CATEGORY
         )
 
-        const category = await prisma.assetCategory.findUnique({
-            where: { id: categoryId },
-            include: {
-                assets: {
-                    where: { isDeleted: false },
-                    select: {
-                        id: true,
-                    },
-                }
-            },
+        const category = await assetCategoryRepository.findByIdWithActiveAssets(categoryId)
+
+        const existingCategory = ensureWorkspaceEntity(category, ctx.membership.workspaceId, {
+            notFoundMessage: "Category not found",
+            invalidWorkspaceMessage: "Invalid category",
         })
 
-        if (!category) throw new NotFoundError("Category not found")
+        if (existingCategory.isDeleted) return existingCategory
 
-        if (category.workspaceId !== ctx.membership.workspaceId) {
-            throw new ForbiddenError("Invalid category")
-        }
-
-        if (category.isDeleted) return category
-
-        if (category.assets.length > 0) {
+        if (existingCategory.assets.length > 0) {
             throw new ConflictError(
                 "Cannot archive category with active assets"
             )
         }
 
-        return await withTransaction(async (db) => {
+        return runWorkspaceMutation(async (db) => {
             const updatedCategory = await db.assetCategory.update({
                 where: { id: categoryId },
                 data: { isDeleted: true },
             })
 
-            await domainEventService.record({
-                db,
-                workspaceId: ctx.membership.workspaceId,
-                entityType: DomainEntityType.ASSET_CATEGORY,
-                entityId: categoryId,
-                actorId: ctx.membership.userId,
-                type: DomainEventType.CATEGORY_ARCHIVED,
-                message: "Category archived",
-            })
-
             return updatedCategory
+        }, {
+            event: (_category, db) => domainEventService.record({
+                db,
+                ...domainEvents.categoryArchived({
+                    workspaceId: ctx.membership.workspaceId,
+                    actorId: ctx.membership.userId,
+                    categoryId,
+                }),
+            }),
         })
     },
 }

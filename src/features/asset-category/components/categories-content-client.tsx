@@ -1,9 +1,9 @@
 "use client"
 
-import { useState } from "react"
 import PageHeader from "@/components/layout/page-header"
 import CategoriesHeaderActions from "./categories-header-actions"
 import CategoriesTable from "./categories-table"
+import { useOptimisticCollection } from "@/hooks/use-optimistic-collection"
 
 type Category = {
     id: string
@@ -12,26 +12,16 @@ type Category = {
 
 export default function CategoriesContentClient({
     initialCategories,
+    capabilities,
 }: {
     initialCategories: Category[]
+    capabilities: {
+        canCreateCategory: boolean
+        canUpdateCategory: boolean
+        canArchiveCategory: boolean
+    }
 }) {
-    const [categories, setCategories] = useState<Category[]>(initialCategories)
-
-    function handleCategoryCreated(category: Category) {
-        setCategories((prev) => [...prev, category])
-    }
-
-    function handleCategoryUpdated(id: string, updates: Partial<Category>) {
-        setCategories((prev) =>
-            prev.map((category) =>
-                category.id === id ? { ...category, ...updates } : category
-            )
-        )
-    }
-
-    function handleCategoryDeleted(id: string) {
-        setCategories((prev) => prev.filter((category) => category.id !== id))
-    }
+    const categories = useOptimisticCollection<Category>(initialCategories)
 
     return (
         <>
@@ -39,14 +29,18 @@ export default function CategoriesContentClient({
                 title="Categories"
                 description="Organize your assets"
                 actions={
-                    <CategoriesHeaderActions onCreate={handleCategoryCreated} />
+                    capabilities.canCreateCategory ? (
+                        <CategoriesHeaderActions onCreate={categories.append} />
+                    ) : null
                 }
             />
 
             <CategoriesTable
-                categories={categories}
-                onCategoryUpdated={handleCategoryUpdated}
-                onCategoryDeleted={handleCategoryDeleted}
+                categories={categories.items}
+                onCategoryUpdated={categories.patch}
+                onCategoryDeleted={categories.remove}
+                canUpdateCategory={capabilities.canUpdateCategory}
+                canArchiveCategory={capabilities.canArchiveCategory}
             />
         </>
     )

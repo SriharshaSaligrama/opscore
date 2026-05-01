@@ -13,40 +13,12 @@ import {
     WorkOrderAction,
 } from "./work-order.state-machine"
 
-import { withTransaction } from "@/lib/transaction"
 import { getServiceContext } from "@/lib/service-context"
 import { BadRequestError } from "@/lib/errors"
 
 import { domainEventService } from "@/features/domain-events/domain-event.service"
-import { DomainEventType } from "@/features/domain-events/domain-event.types"
-import { DomainEntityType } from "@prisma/client"
-
-function mapActionToEventType(action: WorkOrderAction): DomainEventType {
-    switch (action) {
-        case "assign": return DomainEventType.WORK_ORDER_ASSIGNED
-        case "start": return DomainEventType.WORK_ORDER_STARTED
-        case "complete": return DomainEventType.WORK_ORDER_COMPLETED
-        case "close": return DomainEventType.WORK_ORDER_CLOSED
-        default: throw new Error(`Unknown action: ${action}`)
-    }
-}
-
-function mapActionToMessage(
-    action: WorkOrderAction,
-): string {
-    switch (action) {
-        case "assign":
-            return "Work order assigned"
-        case "start":
-            return "Work started"
-        case "complete":
-            return "Work completed"
-        case "close":
-            return "Work order closed"
-        default:
-            throw new Error(`Unknown action: ${action}`)
-    }
-}
+import { domainEvents } from "@/features/domain-events/domain-event.builders"
+import { runWorkspaceMutation } from "@/lib/service-mutation"
 
 export const workOrderService = {
 
@@ -63,7 +35,7 @@ export const workOrderService = {
         description?: string
         priority?: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL"
     }) {
-        return withTransaction(async (db) => {
+        return runWorkspaceMutation(async (db) => {
             const ctx = await getServiceContext(
                 userId,
                 workspaceId,
@@ -82,17 +54,16 @@ export const workOrderService = {
                 },
             })
 
-            await domainEventService.record({
-                db,
-                workspaceId: ctx.membership.workspaceId,
-                entityType: DomainEntityType.WORK_ORDER,
-                entityId: workOrder.id,
-                actorId: ctx.membership.userId,
-                type: DomainEventType.WORK_ORDER_CREATED,
-                message: "Work order created",
-            })
-
             return workOrder
+        }, {
+            event: (workOrder, db) => domainEventService.record({
+                db,
+                ...domainEvents.workOrderCreated({
+                    workspaceId,
+                    actorId: userId,
+                    workOrderId: workOrder.id,
+                }),
+            }),
         })
     },
 
@@ -109,7 +80,7 @@ export const workOrderService = {
         action: WorkOrderAction
         assigneeId?: string
     }) {
-        return withTransaction(async (db) => {
+        return runWorkspaceMutation(async (db) => {
             const ctx = await getServiceContext(
                 userId,
                 workspaceId
@@ -150,24 +121,25 @@ export const workOrderService = {
                 },
             })
 
-            await domainEventService.record({
+            return {
+                updated,
+                previousStatus: workOrder.status,
+                newStatus: nextStatus,
+            }
+        }, {
+            event: ({ previousStatus, newStatus }, db) => domainEventService.record({
                 db,
-                workspaceId: ctx.membership.workspaceId,
-                entityType: DomainEntityType.WORK_ORDER,
-                entityId: workOrderId,
-                actorId: ctx.membership.userId,
-                type: mapActionToEventType(action),
-                message: mapActionToMessage(action),
-                metadata: {
+                ...domainEvents.workOrderAction({
+                    workspaceId,
+                    actorId: userId,
+                    workOrderId,
                     action,
-                    previousStatus: workOrder.status,
-                    newStatus: nextStatus,
-                    ...(assigneeId && { assigneeId }),
-                },
-            })
-
-            return updated
-        })
+                    previousStatus,
+                    newStatus,
+                    assigneeId,
+                }),
+            }),
+        }).then(({ updated }) => updated)
     },
 
     async listWorkOrders({
@@ -200,7 +172,7 @@ export const workOrderService = {
         workspaceId: string
         workOrderId: string
     }) {
-        return withTransaction(async (db) => {
+        return runWorkspaceMutation(async (db) => {
             const ctx = await getServiceContext(
                 userId,
                 workspaceId,
@@ -214,7 +186,7 @@ export const workOrderService = {
             )
 
             if (workOrder.isDeleted) {
-                return workOrder
+                return { workOrder, archived: false }
             }
 
             const updated = await db.workOrder.update({
@@ -222,18 +194,19 @@ export const workOrderService = {
                 data: { isDeleted: true },
             })
 
-            await domainEventService.record({
-                db,
-                workspaceId: ctx.membership.workspaceId,
-                entityType: DomainEntityType.WORK_ORDER,
-                entityId: workOrderId,
-                actorId: ctx.membership.userId,
-                type: DomainEventType.WORK_ORDER_ARCHIVED,
-                message: "Work order archived",
-            })
-
-            return updated
-        })
+            return { workOrder: updated, archived: true }
+        }, {
+            event: ({ archived }, db) => archived
+                ? domainEventService.record({
+                    db,
+                    ...domainEvents.workOrderArchived({
+                        workspaceId,
+                        actorId: userId,
+                        workOrderId,
+                    }),
+                })
+                : Promise.resolve(),
+        }).then(({ workOrder }) => workOrder)
     },
 
     async addComment({
@@ -248,7 +221,7 @@ export const workOrderService = {
         message: string
     }) {
 
-        return withTransaction(async (db) => {
+        return runWorkspaceMutation(async (db) => {
 
             const ctx = await getServiceContext(userId, workspaceId)
 
@@ -260,12 +233,12 @@ export const workOrderService = {
 
             return domainEventService.record({
                 db,
-                workspaceId: ctx.membership.workspaceId,
-                entityType: DomainEntityType.WORK_ORDER,
-                entityId: workOrderId,
-                actorId: ctx.membership.userId,
-                type: DomainEventType.COMMENT_ADDED,
-                message,
+                ...domainEvents.commentAdded({
+                    workspaceId: ctx.membership.workspaceId,
+                    actorId: ctx.membership.userId,
+                    workOrderId,
+                    message,
+                }),
             })
 
         })

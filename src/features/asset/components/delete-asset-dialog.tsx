@@ -1,29 +1,9 @@
 "use client"
 
-import { ReactNode, useState } from "react"
+import { ReactNode } from "react"
 
 import { deleteAssetAction } from "@/features/asset/actions/delete-asset.action"
-import { useActionDialog } from "@/hooks/use-action-dialog"
-
-import {
-    AlertDialog,
-    AlertDialogContent,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogDescription,
-    AlertDialogTrigger,
-    AlertDialogFooter,
-    AlertDialogCancel,
-} from "@/components/ui/alert-dialog"
-
-import { Button } from "@/components/ui/button"
-
-import { ActionState } from "@/lib/action-handler"
-
-const initialState: ActionState = {
-    success: false,
-    error: "",
-}
+import { ConfirmActionDialog } from "@/components/forms/confirm-action-dialog"
 
 export default function DeleteAssetDialog({
     asset,
@@ -34,55 +14,23 @@ export default function DeleteAssetDialog({
     children: ReactNode
     onDelete?: (assetId: string) => void
 }) {
-    const [open, setOpen] = useState(false)
-
-    const { state, pending, formRef, handleAction } = useActionDialog<string>(
-        deleteAssetAction,
-        initialState,
-        {
-            onSuccess: () => {
-                onDelete?.(asset.id)
-                setOpen(false)
-            },
-        }
-    )
-
     return (
-        <AlertDialog open={open} onOpenChange={setOpen}>
-            <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
-
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>
-                        Delete &ldquo;{asset.name}&rdquo;?
-                    </AlertDialogTitle>
-
-                    <AlertDialogDescription>
-                        This will archive the asset. It will no longer
-                        appear in active lists. If any work order still references this
-                        asset, archiving is blocked.
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-
-                <form ref={formRef} action={handleAction}>
-                    <input type="hidden" name="id" value={asset.id} />
-
-                    {!state.success && state.error && (
-                        <p className="text-sm text-red-500">{state.error}</p>
-                    )}
-
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-
-                        <Button type="submit" variant="destructive" disabled={pending}>
-                            {pending && (
-                                <span className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
-                            )}
-                            {pending ? "Deleting..." : "Delete"}
-                        </Button>
-                    </AlertDialogFooter>
-                </form>
-            </AlertDialogContent>
-        </AlertDialog>
+        <ConfirmActionDialog
+            action={deleteAssetAction}
+            hiddenFields={{ id: asset.id }}
+            title={<>Delete &ldquo;{asset.name}&rdquo;?</>}
+            description={
+                <>
+                    This will archive the asset. It will no longer appear in active
+                    lists. If any work order still references this asset, archiving is
+                    blocked.
+                </>
+            }
+            confirmLabel="Delete"
+            pendingLabel="Deleting..."
+            onSuccess={() => onDelete?.(asset.id)}
+        >
+            {children}
+        </ConfirmActionDialog>
     )
 }

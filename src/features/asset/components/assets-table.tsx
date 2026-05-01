@@ -28,11 +28,15 @@ export default function AssetsTable({
     categories,
     onAssetUpdated,
     onAssetDeleted,
+    canUpdateAsset = true,
+    canArchiveAsset = true,
 }: {
     assets: Asset[]
     categories: Category[]
     onAssetUpdated: (assetId: string, updates: Partial<Asset>) => void
     onAssetDeleted?: (assetId: string) => void
+    canUpdateAsset?: boolean
+    canArchiveAsset?: boolean
 }) {
     const [updatingIds, setUpdatingIds] = useState<Set<string>>(new Set())
 
@@ -50,6 +54,7 @@ export default function AssetsTable({
 
     const assetsToRender = assets
     const categoriesToRender = categories
+    const canShowActions = canUpdateAsset || canArchiveAsset
 
     if (assets.length === 0) {
         return (
@@ -65,9 +70,11 @@ export default function AssetsTable({
                         <TableHead>Name</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Category</TableHead>
-                        <TableHead className="text-right w-30">
-                            Actions
-                        </TableHead>
+                        {canShowActions && (
+                            <TableHead className="text-right w-30">
+                                Actions
+                            </TableHead>
+                        )}
                     </TableRow>
                 </TableHeader>
 
@@ -89,33 +96,41 @@ export default function AssetsTable({
                                     )}
                                 </TableCell>
 
-                                <TableCell className="text-right space-x-2 flex items-center">
-                                    <AssetStatusSelect
-                                        assetId={asset.id}
-                                        currentStatus={asset.status}
-                                        isUpdating={updatingIds.has(asset.id)}
-                                        onStart={() => markUpdating(asset.id)}
-                                        onEnd={() => unmarkUpdating(asset.id)}
-                                        onOptimisticUpdate={(status) => onAssetUpdated(asset.id, { status })}
-                                    />
-                                    <EditAssetDialog
-                                        asset={asset}
-                                        categories={categoriesToRender}
-                                        isUpdating={updatingIds.has(asset.id)}
-                                        key={asset.id}
-                                        onOptimisticUpdate={(updates) => onAssetUpdated(asset.id, updates)}
-                                    >
-                                        <Button size="icon" variant="outline" className="h-8 w-8">
-                                            <Pencil className="h-4 w-4" />
-                                        </Button>
-                                    </EditAssetDialog>
+                                {canShowActions && (
+                                    <TableCell className="text-right space-x-2 flex items-center">
+                                        {canUpdateAsset && (
+                                            <>
+                                                <AssetStatusSelect
+                                                    assetId={asset.id}
+                                                    currentStatus={asset.status}
+                                                    isUpdating={updatingIds.has(asset.id)}
+                                                    onStart={() => markUpdating(asset.id)}
+                                                    onEnd={() => unmarkUpdating(asset.id)}
+                                                    onOptimisticUpdate={(status) => onAssetUpdated(asset.id, { status })}
+                                                />
+                                                <EditAssetDialog
+                                                    asset={asset}
+                                                    categories={categoriesToRender}
+                                                    isUpdating={updatingIds.has(asset.id)}
+                                                    key={asset.id}
+                                                    onOptimisticUpdate={(updates) => onAssetUpdated(asset.id, updates)}
+                                                >
+                                                    <Button size="icon" variant="outline" className="h-8 w-8">
+                                                        <Pencil className="h-4 w-4" />
+                                                    </Button>
+                                                </EditAssetDialog>
+                                            </>
+                                        )}
 
-                                    <DeleteAssetDialog asset={asset} onDelete={onAssetDeleted}>
-                                        <Button size="icon" variant="destructive" className="h-8 w-8">
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </DeleteAssetDialog>
-                                </TableCell>
+                                        {canArchiveAsset && (
+                                            <DeleteAssetDialog asset={asset} onDelete={onAssetDeleted}>
+                                                <Button size="icon" variant="destructive" className="h-8 w-8">
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </DeleteAssetDialog>
+                                        )}
+                                    </TableCell>
+                                )}
                             </TableRow>
                         )
                     })}

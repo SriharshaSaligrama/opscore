@@ -1,26 +1,19 @@
 "use server"
 
-import { handleAction } from "@/lib/action-handler"
-import { getWorkspaceContext } from "@/features/workspace/workspace.context"
+import { createWorkspaceServerAction } from "@/lib/server-actions"
 import { assetCategoryService } from "@/features/asset-category/asset-category.service"
-import { revalidatePath } from "next/cache"
+import { invalidateCategoriesAndAssets } from "@/features/asset-category/asset-category.cache"
 
-export async function deleteCategoryAction(
-    _: unknown,
-    formData: FormData
-) {
-    return handleAction(async () => {
+export const deleteCategoryAction = createWorkspaceServerAction(
+    async ({ userId, workspaceId }, formData) => {
         const id = formData.get("id") as string
 
-        const { session, workspace } = await getWorkspaceContext()
-
         await assetCategoryService.deleteCategory({
-            userId: session.user.id,
-            workspaceId: workspace.id,
+            userId,
+            workspaceId,
             categoryId: id,
         })
 
-        revalidatePath("/categories")
-        revalidatePath("/assets")
-    })
-}
+        invalidateCategoriesAndAssets()
+    }
+)

@@ -1,25 +1,23 @@
 "use server"
 
 import { z } from "zod"
-import { createValidatedAction } from "@/lib/validated-action"
-import { getWorkspaceContext } from "@/features/workspace/workspace.context"
+import { createValidatedWorkspaceServerAction } from "@/lib/server-actions"
 import { workspaceService } from "@/features/workspace/workspace.service"
-import { revalidatePath } from "next/cache"
+import { invalidateWorkspaceSettings } from "@/features/workspace/workspace.cache"
+import { workspaceNameSchema } from "@/features/workspace/workspace.schemas"
 
-export const renameWorkspaceAction = createValidatedAction(
+export const renameWorkspaceAction = createValidatedWorkspaceServerAction(
     z.object({
-        name: z.string().trim().min(1, "Workspace name is required").max(120, "Workspace name too long"),
+        name: workspaceNameSchema,
     }),
-    async (data) => {
-        const { session, workspace } = await getWorkspaceContext()
-
+    async (data, { userId, workspaceId }) => {
         const updated = await workspaceService.renameWorkspace({
-            workspaceId: workspace.id,
-            name: data.name.trim(),
-            actorId: session.user.id,
+            workspaceId,
+            name: data.name,
+            actorId: userId,
         })
 
-        revalidatePath("/settings")
+        invalidateWorkspaceSettings()
 
         return updated
     }

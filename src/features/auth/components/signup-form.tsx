@@ -2,12 +2,19 @@
 
 import { useActionState } from "react"
 import { signupAction } from "@/features/auth/actions/signup.action"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import AuthShell from "./auth-shell"
+import { ActionError } from "@/components/forms/action-error"
+import { ActionSubmitButton } from "@/components/forms/action-submit-button"
+import { ActionState } from "@/lib/action-handler"
+
+const initialState: ActionState = {
+    success: false,
+    error: "",
+}
 
 export default function SignupForm() {
-    const [state, formAction, pending] = useActionState(signupAction, null)
+    const [state, formAction, pending] = useActionState(signupAction, initialState)
 
     return (
         <AuthShell
@@ -19,13 +26,14 @@ export default function SignupForm() {
                 <Input name="email" placeholder="you@example.com" />
                 <Input name="password" type="password" placeholder="Password" />
 
-                {state?.error && (
-                    <p className="text-sm text-red-500">{state.error}</p>
-                )}
+                <ActionError state={state} />
 
-                <Button className="w-full" disabled={pending}>
-                    {pending ? "Creating..." : "Sign up"}
-                </Button>
+                <ActionSubmitButton
+                    pending={pending}
+                    label="Sign up"
+                    pendingLabel="Creating..."
+                    className="w-full"
+                />
             </form>
 
             <p className="text-sm text-center text-muted-foreground">

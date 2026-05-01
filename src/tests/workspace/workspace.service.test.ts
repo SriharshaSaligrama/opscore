@@ -105,6 +105,19 @@ describe("workspaceService.validateWorkspaceAccess", () => {
     })
 })
 
+describe("workspaceService.createWorkspace", () => {
+    it("rejects workspace names longer than 30 characters", async () => {
+        const user = await createUser()
+
+        await expect(
+            workspaceService.createWorkspace({
+                userId: user.id,
+                name: "A".repeat(31),
+            })
+        ).rejects.toThrow("Workspace name too long")
+    })
+})
+
 describe("workspaceService.getActiveWorkSpaceDetails", () => {
     it("returns workspace details", async () => {
         const workspace = await createWorkspace("Test WS")
@@ -250,11 +263,11 @@ describe("workspaceService.renameWorkspace", () => {
         ).rejects.toThrow()
     })
 
-    it("prevents workspace names longer than allowed limit", async () => {
+    it("prevents workspace names longer than 30 characters", async () => {
         const owner = await createUser()
         const ws = await createWorkspaceForUser(owner.id)
 
-        const longName = "A".repeat(200)
+        const longName = "A".repeat(31)
 
         await expect(
             workspaceService.renameWorkspace({

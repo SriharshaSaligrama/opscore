@@ -1,35 +1,25 @@
 "use client"
 
-import { useState } from "react"
 import PageHeader from "@/components/layout/page-header"
 import AssetsHeaderActions from "./assets-header-actions"
 import AssetsTable from "./assets-table"
 import { Asset, Category } from "@/features/asset/asset-types"
+import { useOptimisticCollection } from "@/hooks/use-optimistic-collection"
 
 export default function AssetsContentClient({
     initialAssets,
     categories,
+    capabilities,
 }: {
     initialAssets: Asset[]
     categories: Category[]
+    capabilities: {
+        canCreateAsset: boolean
+        canUpdateAsset: boolean
+        canArchiveAsset: boolean
+    }
 }) {
-    const [assets, setAssets] = useState<Asset[]>(initialAssets)
-
-    function handleAssetCreated(asset: Asset) {
-        setAssets((prev) => [...prev, asset])
-    }
-
-    function handleAssetUpdated(id: string, updates: Partial<Asset>) {
-        setAssets((prev) =>
-            prev.map((asset) =>
-                asset.id === id ? { ...asset, ...updates } : asset
-            )
-        )
-    }
-
-    function handleAssetDeleted(id: string) {
-        setAssets((prev) => prev.filter((asset) => asset.id !== id))
-    }
+    const assets = useOptimisticCollection<Asset>(initialAssets)
 
     return (
         <>
@@ -37,18 +27,22 @@ export default function AssetsContentClient({
                 title="Assets"
                 description="Manage your workspace assets"
                 actions={
-                    <AssetsHeaderActions
-                        categories={categories}
-                        onCreate={handleAssetCreated}
-                    />
+                    capabilities.canCreateAsset ? (
+                        <AssetsHeaderActions
+                            categories={categories}
+                            onCreate={assets.append}
+                        />
+                    ) : null
                 }
             />
 
             <AssetsTable
-                assets={assets}
+                assets={assets.items}
                 categories={categories}
-                onAssetUpdated={handleAssetUpdated}
-                onAssetDeleted={handleAssetDeleted}
+                onAssetUpdated={assets.patch}
+                onAssetDeleted={assets.remove}
+                canUpdateAsset={capabilities.canUpdateAsset}
+                canArchiveAsset={capabilities.canArchiveAsset}
             />
         </>
     )

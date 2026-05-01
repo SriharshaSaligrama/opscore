@@ -1,25 +1,17 @@
-import { prisma } from "@/lib/prisma"
 import { getServiceContext } from "@/lib/service-context"
 import { Permission } from "@/features/authorization/permissions"
-import { withTransaction } from "@/lib/transaction"
 import { domainEventService } from "@/features/domain-events/domain-event.service"
-import { DomainEventType } from "@/features/domain-events/domain-event.types"
+import { ensureWorkspaceEntity } from "@/lib/workspace-entity-guards"
+import { ASSET_NAME_MAX_LENGTH } from "@/features/asset/asset.schemas"
+import { domainEvents } from "@/features/domain-events/domain-event.builders"
+import { runWorkspaceMutation } from "@/lib/service-mutation"
+import { assetRepository } from "@/features/asset/asset.repository"
+import { assetCategoryRepository } from "@/features/asset-category/asset-category.repository"
 import {
     BadRequestError,
     ConflictError,
-    ForbiddenError,
-    NotFoundError,
 } from "@/lib/errors"
-import { AssetStatus, DomainEntityType, Prisma } from "@prisma/client"
-
-const ASSET_NAME_MAX_LENGTH = 30
-
-function isUniqueConstraintError(error: unknown) {
-    return (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === "P2002"
-    )
-}
+import { AssetStatus } from "@prisma/client"
 
 export const assetService = {
     async createAsset({
@@ -49,70 +41,49 @@ export const assetService = {
             throw new BadRequestError("Asset name too long")
         }
 
-        const category = await prisma.assetCategory.findUnique({
-            where: { id: categoryId },
+        const category = await assetCategoryRepository.findById(categoryId)
+
+        ensureWorkspaceEntity(category, ctx.membership.workspaceId, {
+            notFoundMessage: "Category not found",
+            invalidWorkspaceMessage: "Invalid category",
+            archivedMessage: "Cannot create asset in archived category",
         })
 
-        if (!category) {
-            throw new NotFoundError("Category not found")
-        }
-
-        if (category.workspaceId !== ctx.membership.workspaceId) {
-            throw new ForbiddenError("Invalid category")
-        }
-
-        if (category.isDeleted) {
-            throw new ForbiddenError("Cannot create asset in archived category")
-        }
-
-        const existing = await prisma.asset.findFirst({
-            where: {
-                workspaceId: ctx.membership.workspaceId,
-                name: { equals: name, mode: "insensitive" },
-                isDeleted: false,
-            },
-        })
+        const existing = await assetRepository.findActiveByName(
+            ctx.membership.workspaceId,
+            name
+        )
 
         if (existing) {
             throw new ConflictError("Asset already exists")
         }
 
-        return await withTransaction(async (db) => {
-            try {
-                const asset = await db.asset.create({
-                    data: {
-                        name,
-                        categoryId,
-                        workspaceId: ctx.membership.workspaceId,
-                        createdBy: ctx.membership.userId,
-                    },
-                    include: {
-                        category: true,
-                    },
-                })
-
-                await domainEventService.record({
-                    db,
+        return runWorkspaceMutation(async (db) => {
+            const asset = await db.asset.create({
+                data: {
+                    name,
+                    categoryId,
                     workspaceId: ctx.membership.workspaceId,
-                    entityType: DomainEntityType.ASSET,
-                    entityId: asset.id,
+                    createdBy: ctx.membership.userId,
+                },
+                include: {
+                    category: true,
+                },
+            })
+
+            return asset
+        }, {
+            uniqueConflictMessage: "Asset already exists",
+            event: (asset, db) => domainEventService.record({
+                db,
+                ...domainEvents.assetCreated({
+                    workspaceId: ctx.membership.workspaceId,
                     actorId: ctx.membership.userId,
-                    type: DomainEventType.ASSET_CREATED,
-                    message: "Asset created",
-                    metadata: {
-                        name,
-                        categoryId,
-                    },
-                })
-
-                return asset
-            } catch (error) {
-                if (isUniqueConstraintError(error)) {
-                    throw new ConflictError("Asset already exists")
-                }
-
-                throw error
-            }
+                    assetId: asset.id,
+                    name,
+                    categoryId,
+                }),
+            }),
         })
     },
 
@@ -125,14 +96,7 @@ export const assetService = {
     }) {
         const ctx = await getServiceContext(userId, workspaceId)
 
-        return prisma.asset.findMany({
-            where: {
-                workspaceId: ctx.membership.workspaceId,
-                isDeleted: false, // ✅ soft delete enforced
-            },
-            orderBy: { createdAt: "asc" },
-            include: { category: true },
-        })
+        return assetRepository.listActive(ctx.membership.workspaceId)
     },
 
     async updateAsset({
@@ -156,19 +120,13 @@ export const assetService = {
             Permission.UPDATE_ASSET
         )
 
-        const asset = await prisma.asset.findUnique({
-            where: { id: assetId },
+        const asset = await assetRepository.findById(assetId)
+
+        const existingAsset = ensureWorkspaceEntity(asset, ctx.membership.workspaceId, {
+            notFoundMessage: "Asset not found",
+            invalidWorkspaceMessage: "Invalid asset",
+            archivedMessage: "Cannot update archived asset",
         })
-
-        if (!asset) throw new NotFoundError("Asset not found")
-
-        if (asset.workspaceId !== ctx.membership.workspaceId) {
-            throw new ForbiddenError("Invalid asset")
-        }
-
-        if (asset.isDeleted) {
-            throw new ForbiddenError("Cannot update archived asset")
-        }
 
         let shouldCheckNameConflict = false
 
@@ -183,38 +141,27 @@ export const assetService = {
                 throw new BadRequestError("Asset name too long")
             }
 
-            if (name !== asset.name) {
+            if (name !== existingAsset.name) {
                 shouldCheckNameConflict = true
             }
         }
 
         if (categoryId !== undefined) {
-            const category = await prisma.assetCategory.findUnique({
-                where: { id: categoryId },
+            const category = await assetCategoryRepository.findById(categoryId)
+
+            ensureWorkspaceEntity(category, ctx.membership.workspaceId, {
+                notFoundMessage: "Category not found",
+                invalidWorkspaceMessage: "Invalid category",
+                archivedMessage: "Cannot move asset to archived category",
             })
-
-            if (!category) {
-                throw new NotFoundError("Category not found")
-            }
-
-            if (category.workspaceId !== ctx.membership.workspaceId) {
-                throw new ForbiddenError("Invalid category")
-            }
-
-            if (category.isDeleted) {
-                throw new ForbiddenError("Cannot move asset to archived category")
-            }
         }
 
         if (shouldCheckNameConflict) {
-            const exisiting = await prisma.asset.findFirst({
-                where: {
-                    workspaceId: ctx.membership.workspaceId,
-                    name: { equals: name, mode: "insensitive" },
-                    NOT: { id: assetId },
-                    isDeleted: false,
-                },
-            })
+            const exisiting = await assetRepository.findActiveByNameExcluding(
+                ctx.membership.workspaceId,
+                name!,
+                assetId
+            )
 
             if (exisiting) {
                 throw new ConflictError("Asset already exists")
@@ -227,40 +174,34 @@ export const assetService = {
             }
         }
 
-        return await withTransaction(async (db) => {
-            try {
-                const updatedAsset = await db.asset.update({
-                    where: { id: assetId },
-                    data: {
-                        ...(name !== undefined && { name }),
-                        ...(categoryId !== undefined && { categoryId }),
-                        ...(status !== undefined && { status }),
-                    },
-                })
+        const metadata = {
+            ...(name !== undefined && { name }),
+            ...(categoryId !== undefined && { categoryId }),
+            ...(status !== undefined && { status }),
+        }
 
-                await domainEventService.record({
-                    db,
+        return runWorkspaceMutation(async (db) => {
+            const updatedAsset = await db.asset.update({
+                where: { id: assetId },
+                data: {
+                    ...(name !== undefined && { name }),
+                    ...(categoryId !== undefined && { categoryId }),
+                    ...(status !== undefined && { status }),
+                },
+            })
+
+            return updatedAsset
+        }, {
+            uniqueConflictMessage: "Asset already exists",
+            event: (_asset, db) => domainEventService.record({
+                db,
+                ...domainEvents.assetUpdated({
                     workspaceId: ctx.membership.workspaceId,
-                    entityType: DomainEntityType.ASSET,
-                    entityId: assetId,
                     actorId: ctx.membership.userId,
-                    type: DomainEventType.ASSET_UPDATED,
-                    message: "Asset updated",
-                    metadata: {
-                        ...(name !== undefined && { name }),
-                        ...(categoryId !== undefined && { categoryId }),
-                        ...(status !== undefined && { status }),
-                    },
-                })
-
-                return updatedAsset
-            } catch (error) {
-                if (isUniqueConstraintError(error)) {
-                    throw new ConflictError("Asset already exists")
-                }
-
-                throw error
-            }
+                    assetId,
+                    metadata,
+                }),
+            }),
         })
     },
 
@@ -279,49 +220,37 @@ export const assetService = {
             Permission.ARCHIVE_ASSET
         )
 
-        const asset = await prisma.asset.findUnique({
-            where: { id: assetId },
-            include: {
-                workOrders: {
-                    where: { isDeleted: false },
-                    select: {
-                        id: true,
-                    },
-                }
-            },
+        const asset = await assetRepository.findByIdWithActiveWorkOrders(assetId)
+
+        const existingAsset = ensureWorkspaceEntity(asset, ctx.membership.workspaceId, {
+            notFoundMessage: "Asset not found",
+            invalidWorkspaceMessage: "Invalid asset",
         })
 
-        if (!asset) throw new NotFoundError("Asset not found")
+        if (existingAsset.isDeleted) return existingAsset
 
-        if (asset.workspaceId !== ctx.membership.workspaceId) {
-            throw new ForbiddenError("Invalid asset")
-        }
-
-        if (asset.isDeleted) return asset
-
-        if (asset.workOrders.length > 0) {
+        if (existingAsset.workOrders.length > 0) {
             throw new ConflictError(
                 "Asset cannot be deleted because it has active work orders"
             )
         }
 
-        return await withTransaction(async (db) => {
+        return runWorkspaceMutation(async (db) => {
             const updatedAsset = await db.asset.update({
                 where: { id: assetId },
                 data: { isDeleted: true },
             })
 
-            await domainEventService.record({
-                db,
-                workspaceId: ctx.membership.workspaceId,
-                entityType: DomainEntityType.ASSET,
-                entityId: assetId,
-                actorId: ctx.membership.userId,
-                type: DomainEventType.ASSET_ARCHIVED,
-                message: "Asset archived",
-            })
-
             return updatedAsset
+        }, {
+            event: (_asset, db) => domainEventService.record({
+                db,
+                ...domainEvents.assetArchived({
+                    workspaceId: ctx.membership.workspaceId,
+                    actorId: ctx.membership.userId,
+                    assetId,
+                }),
+            }),
         })
     },
 }

@@ -13,8 +13,8 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { ActionDialogForm } from "@/components/forms/action-dialog-form"
 
 import { ActionState } from "@/lib/action-handler"
 
@@ -62,22 +62,17 @@ export default function EditCategoryDialog({
                     </DialogDescription>
                 </DialogHeader>
 
-                <form ref={formRef} action={handleAction} className="space-y-4">
-                    <input type="hidden" name="id" value={category.id} />
-
+                <ActionDialogForm
+                    formRef={formRef}
+                    action={handleAction}
+                    state={state}
+                    pending={pending}
+                    label="Save"
+                    pendingLabel="Saving..."
+                    hiddenFields={{ id: category.id }}
+                >
                     <Input name="name" defaultValue={category.name} />
-
-                    {!state.success && state.error && (
-                        <p className="text-sm text-red-500">{state.error}</p>
-                    )}
-
-                    <Button type="submit" disabled={pending} className="w-full">
-                        {pending && (
-                            <span className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
-                        )}
-                        {pending ? "Saving..." : "Save"}
-                    </Button>
-                </form>
+                </ActionDialogForm>
             </DialogContent>
         </Dialog>
     )

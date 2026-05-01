@@ -8,8 +8,8 @@ import {
     DialogDescription,
 } from "@/components/ui/dialog"
 
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { ActionDialogForm } from "@/components/forms/action-dialog-form"
 
 import { ActionState } from "@/lib/action-handler"
 import { useActionDialog } from "@/hooks/use-action-dialog"
@@ -55,21 +55,20 @@ export default function RenameWorkspaceDialog({
                     </DialogDescription>
                 </DialogHeader>
 
-                <form ref={formRef} action={handleAction} className="space-y-4">
+                <ActionDialogForm
+                    formRef={formRef}
+                    action={handleAction}
+                    state={state}
+                    pending={pending}
+                    label="Save"
+                    pendingLabel="Saving..."
+                >
                     <Input
                         name="name"
                         placeholder="Workspace name"
                         defaultValue={currentName}
                     />
-
-                    {!state.success && state.error && (
-                        <p className="text-sm text-red-500">{state.error}</p>
-                    )}
-
-                    <Button type="submit" disabled={pending} className="w-full">
-                        {pending ? "Saving..." : "Save"}
-                    </Button>
-                </form>
+                </ActionDialogForm>
             </DialogContent>
         </Dialog>
     )

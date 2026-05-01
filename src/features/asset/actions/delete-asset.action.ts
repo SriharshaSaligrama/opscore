@@ -1,27 +1,21 @@
 "use server"
 
-import { handleAction } from "@/lib/action-handler"
-import { getWorkspaceContext } from "@/features/workspace/workspace.context"
+import { createWorkspaceServerAction } from "@/lib/server-actions"
 import { assetService } from "@/features/asset/asset.service"
-import { revalidatePath } from "next/cache"
+import { invalidateAssets } from "@/features/asset/asset.cache"
 
-export async function deleteAssetAction(
-    _: unknown,
-    formData: FormData
-) {
-    return handleAction(async () => {
+export const deleteAssetAction = createWorkspaceServerAction(
+    async ({ userId, workspaceId }, formData) => {
         const id = formData.get("id") as string
 
-        const { session, workspace } = await getWorkspaceContext()
-
         await assetService.archiveAsset({
-            userId: session.user.id,
-            workspaceId: workspace.id,
+            userId,
+            workspaceId,
             assetId: id,
         })
 
-        revalidatePath("/assets")
+        invalidateAssets()
 
         return id
-    })
-}
+    }
+)

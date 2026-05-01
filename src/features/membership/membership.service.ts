@@ -1,19 +1,13 @@
 import { prisma } from "@/lib/prisma"
-import { DomainEntityType, Prisma, Role } from "@prisma/client"
-import { ConflictError, ForbiddenError, NotFoundError } from "@/lib/errors"
+import { Role } from "@prisma/client"
+import { ForbiddenError, NotFoundError } from "@/lib/errors"
 
 import { findMembership, countWorkspaceOwners } from "./membership.repository"
 import { authorizationService } from "@/features/authorization/authorization.service"
 
 import { domainEventService } from "@/features/domain-events/domain-event.service"
-import { DomainEventType } from "@/features/domain-events/domain-event.types"
-
-function isUniqueConstraintError(error: unknown) {
-    return (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === "P2002"
-    )
-}
+import { domainEvents } from "@/features/domain-events/domain-event.builders"
+import { runWorkspaceMutation } from "@/lib/service-mutation"
 
 export const membershipService = {
     async listMembers(workspaceId: string) {
@@ -45,34 +39,28 @@ export const membershipService = {
         role: Role
         actorId: string
     }) {
-        const membership = await (async () => {
-            try {
-                return await prisma.membership.create({
-                    data: {
-                        workspaceId,
-                        userId,
-                        role,
-                    },
-                })
-            } catch (error) {
-                if (isUniqueConstraintError(error)) {
-                    throw new ConflictError("User is already a member")
-                }
+        return runWorkspaceMutation(async (db) => {
+            const membership = await db.membership.create({
+                data: {
+                    workspaceId,
+                    userId,
+                    role,
+                },
+            })
 
-                throw error
-            }
-        })()
-
-        await domainEventService.record({
-            workspaceId,
-            entityType: DomainEntityType.MEMBERSHIP,
-            entityId: userId,
-            actorId,
-            type: DomainEventType.MEMBER_ADDED,
-            metadata: { role },
+            return membership
+        }, {
+            uniqueConflictMessage: "User is already a member",
+            event: (_membership, db) => domainEventService.record({
+                db,
+                ...domainEvents.memberAdded({
+                    workspaceId,
+                    actorId,
+                    userId,
+                    role,
+                }),
+            }),
         })
-
-        return membership
     },
     async removeMember({
         workspaceId,
@@ -101,16 +89,16 @@ export const membershipService = {
             }
         }
 
-        await prisma.membership.delete({
-            where: { userId_workspaceId: { userId, workspaceId } },
-        })
+        await runWorkspaceMutation(async (db) => {
+            await db.membership.delete({
+                where: { userId_workspaceId: { userId, workspaceId } },
+            })
 
-        await domainEventService.record({
-            workspaceId,
-            entityType: DomainEntityType.MEMBERSHIP,
-            entityId: userId,
-            actorId,
-            type: DomainEventType.MEMBER_REMOVED,
+        }, {
+            event: (_result, db) => domainEventService.record({
+                db,
+                ...domainEvents.memberRemoved({ workspaceId, actorId, userId }),
+            }),
         })
     },
     async changeMemberRole({
@@ -143,22 +131,25 @@ export const membershipService = {
             }
         }
 
-        const updated = await prisma.membership.update({
-            where: {
-                userId_workspaceId: { userId, workspaceId }
-            },
-            data: { role }
-        })
+        return runWorkspaceMutation(async (db) => {
+            const updated = await db.membership.update({
+                where: {
+                    userId_workspaceId: { userId, workspaceId }
+                },
+                data: { role }
+            })
 
-        await domainEventService.record({
-            workspaceId,
-            entityType: DomainEntityType.MEMBERSHIP,
-            entityId: userId,
-            actorId,
-            type: DomainEventType.MEMBER_ROLE_CHANGED,
-            metadata: { newRole: role },
+            return updated
+        }, {
+            event: (_membership, db) => domainEventService.record({
+                db,
+                ...domainEvents.memberRoleChanged({
+                    workspaceId,
+                    actorId,
+                    userId,
+                    newRole: role,
+                }),
+            }),
         })
-
-        return updated
     }
 }

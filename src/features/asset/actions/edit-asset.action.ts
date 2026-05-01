@@ -1,31 +1,29 @@
 "use server"
 
 import { z } from "zod"
-import { createValidatedAction } from "@/lib/validated-action"
-import { getWorkspaceContext } from "@/features/workspace/workspace.context"
+import { createValidatedWorkspaceServerAction } from "@/lib/server-actions"
 import { assetService } from "@/features/asset/asset.service"
-import { revalidatePath } from "next/cache"
+import { invalidateAssets } from "@/features/asset/asset.cache"
 import { AssetStatus } from "@prisma/client"
+import { assetNameSchema } from "@/features/asset/asset.schemas"
 
-export const editAssetAction = createValidatedAction(
+export const editAssetAction = createValidatedWorkspaceServerAction(
     z.object({
         id: z.string(),
-        name: z.string().trim().min(1, "Asset name is required").max(30, "Asset name too long"),
+        name: assetNameSchema,
         categoryId: z.string(),
         status: z.enum(Object.values(AssetStatus)),
     }),
-    async (data) => {
-        const { session, workspace } = await getWorkspaceContext()
-
+    async (data, { userId, workspaceId }) => {
         await assetService.updateAsset({
-            userId: session.user.id,
-            workspaceId: workspace.id,
+            userId,
+            workspaceId,
             assetId: data.id,
-            name: data.name.trim(),
+            name: data.name,
             categoryId: data.categoryId,
             status: data.status,
         })
 
-        revalidatePath("/assets")
+        invalidateAssets()
     }
 )

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { DomainEventType } from "./domain-event.types"
 import { DomainEntityType, Prisma } from "@prisma/client"
 
-type RecordEventInput = {
+export type DomainEventRecordInput = {
     db?: DB
     workspaceId: string
     entityType: DomainEntityType
@@ -24,7 +24,7 @@ export const domainEventService = {
         type,
         message,
         metadata,
-    }: RecordEventInput) {
+    }: DomainEventRecordInput) {
 
         return db.domainEvent.create({
             data: {

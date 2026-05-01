@@ -1,5 +1,6 @@
 import { DB } from "@/lib/db"
-import { ForbiddenError, NotFoundError } from "@/lib/errors"
+import { ForbiddenError } from "@/lib/errors"
+import { ensureWorkspaceEntity } from "@/lib/workspace-entity-guards"
 
 export async function getWorkOrderOrThrow(
     db: DB,
@@ -10,21 +11,11 @@ export async function getWorkOrderOrThrow(
         where: { id: workOrderId },
     })
 
-    if (!workOrder) {
-        throw new NotFoundError("Work order not found")
-    }
-
-    if (workOrder.workspaceId !== workspaceId) {
-        throw new ForbiddenError(
-            "Work order does not belong to workspace"
-        )
-    }
-
-    if (workOrder.isDeleted) {
-        throw new ForbiddenError("Work order is archived")
-    }
-
-    return workOrder
+    return ensureWorkspaceEntity(workOrder, workspaceId, {
+        notFoundMessage: "Work order not found",
+        invalidWorkspaceMessage: "Work order does not belong to workspace",
+        archivedMessage: "Work order is archived",
+    })
 }
 
 export async function getAssetOrThrow(
@@ -37,23 +28,11 @@ export async function getAssetOrThrow(
         where: { id: assetId },
     })
 
-    if (!asset) {
-        throw new NotFoundError("Asset not found")
-    }
-
-    if (asset.workspaceId !== workspaceId) {
-        throw new ForbiddenError(
-            "Asset does not belong to workspace"
-        )
-    }
-
-    if (asset.isDeleted) {
-        throw new ForbiddenError(
-            "Cannot create work order for archived asset"
-        )
-    }
-
-    return asset
+    return ensureWorkspaceEntity(asset, workspaceId, {
+        notFoundMessage: "Asset not found",
+        invalidWorkspaceMessage: "Asset does not belong to workspace",
+        archivedMessage: "Cannot create work order for archived asset",
+    })
 }
 
 export async function ensureUserInWorkspace(
