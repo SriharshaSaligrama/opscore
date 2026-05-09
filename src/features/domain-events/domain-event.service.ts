@@ -14,6 +14,15 @@ export type DomainEventRecordInput = {
     metadata?: Prisma.InputJsonValue
 }
 
+export type DomainEventInput = Omit<DomainEventRecordInput, "db">
+
+export function recordDomainEvent(db: DB, event: DomainEventInput) {
+    return domainEventService.record({
+        db,
+        ...event,
+    })
+}
+
 export const domainEventService = {
     async record({
         db = prisma,

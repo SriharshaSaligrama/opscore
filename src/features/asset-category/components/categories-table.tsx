@@ -1,13 +1,17 @@
 "use client"
 
 import {
-    Table,
     TableBody,
     TableCell,
     TableHead,
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
+import { DataTableShell } from "@/components/data-table/data-table-shell"
+import {
+    TableActionsCell,
+    TableActionsHead,
+} from "@/components/data-table/table-actions-cell"
 
 import { Button } from "@/components/ui/button"
 import { Pencil, Trash2 } from "lucide-react"
@@ -43,16 +47,11 @@ export default function CategoriesTable({
     }
 
     return (
-        <div className="border rounded-lg overflow-hidden">
-            <Table>
+        <DataTableShell>
                 <TableHeader>
                     <TableRow>
                         <TableHead>Name</TableHead>
-                        {canShowActions && (
-                            <TableHead className="text-right w-30">
-                                Actions
-                            </TableHead>
-                        )}
+                        {canShowActions && <TableActionsHead />}
                     </TableRow>
                 </TableHeader>
 
@@ -65,7 +64,7 @@ export default function CategoriesTable({
                                 </TableCell>
 
                                 {canShowActions && (
-                                    <TableCell className="text-right space-x-2 flex items-center justify-end">
+                                    <TableActionsCell>
                                         {canUpdateCategory && (
                                             <EditCategoryDialog
                                                 category={c}
@@ -85,13 +84,12 @@ export default function CategoriesTable({
                                                 </Button>
                                             </DeleteCategoryDialog>
                                         )}
-                                    </TableCell>
+                                    </TableActionsCell>
                                 )}
                             </TableRow>
                         )
                     })}
                 </TableBody>
-            </Table>
-        </div>
+        </DataTableShell>
     )
 }

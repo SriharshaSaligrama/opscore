@@ -1,16 +1,15 @@
 import crypto from "crypto"
 import { Role } from "@prisma/client"
 import { ConflictError, ForbiddenError, NotFoundError } from "@/lib/errors"
-import { prisma } from "@/lib/prisma"
 
 import { invitationRepository } from "./invitation.repository"
-import { membershipService } from "@/features/membership/membership.service"
 import { authorizationService } from "@/features/authorization/authorization.service"
 import { Permission } from "@/features/authorization/permissions"
 
-import { domainEventService } from "@/features/domain-events/domain-event.service"
 import { domainEvents } from "@/features/domain-events/domain-event.builders"
 import { runWorkspaceMutation } from "@/lib/service-mutation"
+import { authRepository } from "@/features/auth/auth.repository"
+import { membershipRepository } from "@/features/membership/membership.repository"
 
 function generateToken() {
     return crypto.randomBytes(32).toString("hex")
@@ -54,15 +53,12 @@ export const invitationService = {
                 invitedBy: actorId,
             }, db)
         }, {
-            event: (invite, db) => domainEventService.record({
-                db,
-                ...domainEvents.invitationSent({
+            event: (invite) => domainEvents.invitationSent({
                     workspaceId,
                     actorId,
                     invitationId: invite.id,
                     email: normalizedEmail,
                     role,
-                }),
             }),
         })
     },
@@ -74,57 +70,59 @@ export const invitationService = {
         token: string
         userId: string
     }) {
-        const invite = await invitationRepository.findByToken(token)
-        if (!invite) throw new NotFoundError("Invitation not found")
+        return runWorkspaceMutation(async (db) => {
+            const invite = await invitationRepository.findByToken(token, db)
+            if (!invite) throw new NotFoundError("Invitation not found")
 
-        if (invite.acceptedAt) throw new ForbiddenError("Invitation already accepted")
+            if (invite.acceptedAt) throw new ForbiddenError("Invitation already accepted")
 
-        if (invite.expiresAt < new Date()) throw new ForbiddenError("Invitation expired")
+            if (invite.expiresAt < new Date()) throw new ForbiddenError("Invitation expired")
 
-        const user = await prisma.user.findUnique({
-            where: { id: userId },
-            select: { email: true },
-        })
+            const user = await authRepository.findUserEmailById(userId, db)
 
-        if (!user) throw new NotFoundError("User not found")
+            if (!user) throw new NotFoundError("User not found")
 
-        if (user.email.toLowerCase() !== invite.email.toLowerCase()) {
-            throw new ForbiddenError("Invitation does not belong to this user")
-        }
+            if (user.email.toLowerCase() !== invite.email.toLowerCase()) {
+                throw new ForbiddenError("Invitation does not belong to this user")
+            }
 
-        const existingMembership = await prisma.membership.findUnique({
-            where: {
-                userId_workspaceId: {
-                    userId,
+            const existingMembership = await membershipRepository.findMembership(
+                userId,
+                invite.workspaceId,
+                db
+            )
+
+            if (existingMembership) {
+                throw new ConflictError("User is already a member")
+            }
+
+            const membership = await db.membership.create({
+                data: {
                     workspaceId: invite.workspaceId,
+                    userId,
+                    role: invite.role,
                 },
-            },
-        })
+            })
 
-        if (existingMembership) {
-            throw new ConflictError("User is already a member")
-        }
+            await invitationRepository.markAccepted(invite.id, db)
 
-        const membership = await membershipService.addMember({
-            workspaceId: invite.workspaceId,
-            userId,
-            role: invite.role,
-            actorId: invite.invitedBy,
-        })
-
-        await runWorkspaceMutation(async (db) => {
-            return invitationRepository.markAccepted(invite.id, db)
+            return { membership, invite }
         }, {
-            event: (_acceptedInvite, db) => domainEventService.record({
-                db,
-                ...domainEvents.invitationAccepted({
+            uniqueConflictMessage: "User is already a member",
+            event: ({ invite }) => [
+                domainEvents.memberAdded({
+                    workspaceId: invite.workspaceId,
+                    actorId: invite.invitedBy,
+                    userId,
+                    role: invite.role,
+                    source: "invitation",
+                }),
+                domainEvents.invitationAccepted({
                     workspaceId: invite.workspaceId,
                     actorId: userId,
                     invitationId: invite.id,
                 }),
-            }),
-        })
-
-        return membership
+            ],
+        }).then(({ membership }) => membership)
     },
 }

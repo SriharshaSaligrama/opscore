@@ -2,10 +2,11 @@ import { ForbiddenError } from "@/lib/errors"
 import { Role } from "@prisma/client"
 import { Permission, RoleHierarchy, RolePermissions } from "./permissions"
 import { findMembership } from "@/features/membership/membership.repository"
+import { DB } from "@/lib/db"
 
 export const authorizationService = {
-    async ensureMembership(userId: string, workspaceId: string) {
-        const membership = await findMembership(userId, workspaceId)
+    async ensureMembership(userId: string, workspaceId: string, db?: DB) {
+        const membership = await findMembership(userId, workspaceId, db)
 
         if (!membership) {
             throw new ForbiddenError("Not part of workspace")

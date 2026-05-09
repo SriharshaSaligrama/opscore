@@ -1,13 +1,13 @@
-import { prisma } from "@/lib/prisma"
+import { dashboardQueries } from "@/features/dashboard/dashboard.queries"
 
 export async function getWorkOrderCount(workspaceId: string) {
-    return prisma.workOrder.count({ where: { workspaceId, isDeleted: false } })
+    return dashboardQueries.getWorkOrderCount(workspaceId)
 }
 
 export async function getAssetCount(workspaceId: string) {
-    return prisma.asset.count({ where: { workspaceId, isDeleted: false } })
+    return dashboardQueries.getAssetCount(workspaceId)
 }
 
 export async function getMemberCount(workspaceId: string) {
-    return prisma.membership.count({ where: { workspaceId } })
+    return dashboardQueries.getMemberCount(workspaceId)
 }

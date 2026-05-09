@@ -1,6 +1,7 @@
 import { authorizationService } from "@/features/authorization/authorization.service"
 import { Permission } from "@/features/authorization/permissions"
 import { Role } from "@prisma/client"
+import { DB } from "@/lib/db"
 
 export type ServiceContext = {
     membership: {
@@ -16,12 +17,14 @@ export type ServiceContext = {
 export async function getServiceContext(
     userId: string,
     workspaceId: string,
-    permission?: Permission
+    permission?: Permission,
+    db?: DB
 ): Promise<ServiceContext> {
 
     const membership = await authorizationService.ensureMembership(
         userId,
-        workspaceId
+        workspaceId,
+        db
     )
 
     if (permission) {

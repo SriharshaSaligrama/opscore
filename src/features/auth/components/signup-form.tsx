@@ -4,8 +4,7 @@ import { useActionState } from "react"
 import { signupAction } from "@/features/auth/actions/signup.action"
 import { Input } from "@/components/ui/input"
 import AuthShell from "./auth-shell"
-import { ActionError } from "@/components/forms/action-error"
-import { ActionSubmitButton } from "@/components/forms/action-submit-button"
+import { ActionForm } from "@/components/forms/action-form"
 import { ActionState } from "@/lib/action-handler"
 
 const initialState: ActionState = {
@@ -21,20 +20,17 @@ export default function SignupForm() {
             title="Create account"
             subtitle="Start managing your operations"
         >
-            <form action={formAction} className="space-y-4">
+            <ActionForm
+                action={formAction}
+                state={state}
+                pending={pending}
+                label="Sign up"
+                pendingLabel="Creating..."
+            >
                 <Input name="name" placeholder="Full name" />
                 <Input name="email" placeholder="you@example.com" />
                 <Input name="password" type="password" placeholder="Password" />
-
-                <ActionError state={state} />
-
-                <ActionSubmitButton
-                    pending={pending}
-                    label="Sign up"
-                    pendingLabel="Creating..."
-                    className="w-full"
-                />
-            </form>
+            </ActionForm>
 
             <p className="text-sm text-center text-muted-foreground">
                 Already have an account?{" "}

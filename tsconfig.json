@@ -1,6 +1,5 @@
 {
     "compilerOptions": {
-        // "ignoreDeprecations": "6.0",
         "target": "ES2017",
         "lib": [
             "dom",
@@ -23,10 +22,9 @@
                 "name": "next"
             }
         ],
-        "baseUrl": "src/",
         "paths": {
             "@/*": [
-                "./*"
+                "./src/*"
             ]
         }
     },

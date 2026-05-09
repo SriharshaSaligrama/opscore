@@ -2,8 +2,8 @@ import { workspaceService } from "./workspace.service"
 import { cache } from "react"
 import { redirect } from "next/navigation"
 import { getAuthContext } from "@/features/auth/auth.context"
-import { prisma } from "@/lib/prisma"
 import { getWorkspaceCapabilities } from "@/features/authorization/capabilities"
+import { workspaceRepository } from "@/features/workspace/workspace.repository"
 
 export const getWorkspaceContext = cache(async function () {
     const { session, user } = await getAuthContext()
@@ -24,14 +24,10 @@ export const getWorkspaceContext = cache(async function () {
         redirect("/select-workspace")
     }
 
-    const membership = await prisma.membership.findUnique({
-        where: {
-            userId_workspaceId: {
-                userId: session.user.id,
-                workspaceId: workspace.id
-            }
-        }
-    })
+    const membership = await workspaceRepository.findMembership(
+        session.user.id,
+        workspace.id
+    )
 
     return {
         session,

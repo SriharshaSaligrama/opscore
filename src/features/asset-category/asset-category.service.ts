@@ -1,6 +1,5 @@
 import { getServiceContext } from "@/lib/service-context"
 import { Permission } from "@/features/authorization/permissions"
-import { domainEventService } from "@/features/domain-events/domain-event.service"
 import { ensureWorkspaceEntity } from "@/lib/workspace-entity-guards"
 import { CATEGORY_NAME_MAX_LENGTH } from "@/features/asset-category/asset-category.schemas"
 import { domainEvents } from "@/features/domain-events/domain-event.builders"
@@ -51,14 +50,11 @@ export const assetCategoryService = {
             return category
         }, {
             uniqueConflictMessage: "Category already exists",
-            event: (category, db) => domainEventService.record({
-                db,
-                ...domainEvents.categoryCreated({
+            event: (category) => domainEvents.categoryCreated({
                     workspaceId: ctx.membership.workspaceId,
                     actorId: ctx.membership.userId,
                     categoryId: category.id,
                     name,
-                }),
             }),
         })
     },
@@ -124,14 +120,11 @@ export const assetCategoryService = {
             return updatedCategory
         }, {
             uniqueConflictMessage: "Category already exists",
-            event: (_category, db) => domainEventService.record({
-                db,
-                ...domainEvents.categoryUpdated({
+            event: () => domainEvents.categoryUpdated({
                     workspaceId: ctx.membership.workspaceId,
                     actorId: ctx.membership.userId,
                     categoryId,
                     name,
-                }),
             }),
         })
     },
@@ -174,13 +167,10 @@ export const assetCategoryService = {
 
             return updatedCategory
         }, {
-            event: (_category, db) => domainEventService.record({
-                db,
-                ...domainEvents.categoryArchived({
+            event: () => domainEvents.categoryArchived({
                     workspaceId: ctx.membership.workspaceId,
                     actorId: ctx.membership.userId,
                     categoryId,
-                }),
             }),
         })
     },

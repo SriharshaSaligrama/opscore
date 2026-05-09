@@ -1,32 +1,23 @@
-// SelectWorkspace.tsx
 import { redirect } from "next/navigation"
 import { getCurrentSession } from "@/lib/auth"
-import { prisma } from "@/lib/prisma"
 import { workspaceService } from "@/features/workspace/workspace.service"
-import { RolePermissions, Permission } from "@/features/authorization/permissions"
+import { can } from "@/features/authorization/capabilities"
+import { Permission } from "@/features/authorization/permissions"
+import { workspaceRepository } from "@/features/workspace/workspace.repository"
 import SelectWorkspaceClient from "./select-workspace-client"
-
-function canCreateWorkspace(role: string | null): boolean {
-    if (!role) return false
-    const perms = RolePermissions[role as keyof typeof RolePermissions]
-    return perms?.includes(Permission.CREATE_WORKSPACE) ?? false
-}
 
 export default async function SelectWorkspace() {
     const session = await getCurrentSession()
 
     if (!session) redirect("/login")
 
-    const memberships = await prisma.membership.findMany({
-        where: { userId: session.user.id },
-        include: { workspace: true },
-    })
+    const memberships = await workspaceRepository.listMembershipWorkspaces(session.user.id)
 
     if (memberships.length === 0) {
         redirect("/no-workspace")
     }
 
-    const userCanCreate = canCreateWorkspace(memberships[0]?.role ?? null)
+    const userCanCreate = can(memberships[0]?.role, Permission.CREATE_WORKSPACE)
 
     if (memberships.length === 1) {
         // If user can create workspace, show them the page with create dialog

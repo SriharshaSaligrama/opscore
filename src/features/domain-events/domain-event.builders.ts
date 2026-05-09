@@ -1,9 +1,7 @@
 import { AssetStatus, DomainEntityType, Role, WorkOrderStatus } from "@prisma/client"
-import { DomainEventRecordInput } from "@/features/domain-events/domain-event.service"
+import { DomainEventInput } from "@/features/domain-events/domain-event.service"
 import { DomainEventType } from "@/features/domain-events/domain-event.types"
 import type { WorkOrderAction } from "@/features/work-order/work-order.state-machine"
-
-type EventInput = Omit<DomainEventRecordInput, "db">
 
 export const domainEvents = {
     workspaceCreated({
@@ -16,7 +14,7 @@ export const domainEvents = {
         actorId: string
         name: string
         source?: string
-    }): EventInput {
+    }): DomainEventInput {
         return {
             workspaceId,
             entityType: DomainEntityType.WORKSPACE,
@@ -38,7 +36,7 @@ export const domainEvents = {
         actorId: string
         oldName: string
         newName: string
-    }): EventInput {
+    }): DomainEventInput {
         return {
             workspaceId,
             entityType: DomainEntityType.WORKSPACE,
@@ -62,7 +60,7 @@ export const domainEvents = {
         userId: string
         role: Role
         source?: string
-    }): EventInput {
+    }): DomainEventInput {
         return {
             workspaceId,
             entityType: DomainEntityType.MEMBERSHIP,
@@ -82,7 +80,7 @@ export const domainEvents = {
         workspaceId: string
         actorId: string
         userId: string
-    }): EventInput {
+    }): DomainEventInput {
         return {
             workspaceId,
             entityType: DomainEntityType.MEMBERSHIP,
@@ -103,7 +101,7 @@ export const domainEvents = {
         actorId: string
         userId: string
         newRole: Role
-    }): EventInput {
+    }): DomainEventInput {
         return {
             workspaceId,
             entityType: DomainEntityType.MEMBERSHIP,
@@ -127,7 +125,7 @@ export const domainEvents = {
         assetId: string
         name: string
         categoryId: string
-    }): EventInput {
+    }): DomainEventInput {
         return {
             workspaceId,
             entityType: DomainEntityType.ASSET,
@@ -153,7 +151,7 @@ export const domainEvents = {
             categoryId?: string
             status?: AssetStatus
         }
-    }): EventInput {
+    }): DomainEventInput {
         return {
             workspaceId,
             entityType: DomainEntityType.ASSET,
@@ -173,7 +171,7 @@ export const domainEvents = {
         workspaceId: string
         actorId: string
         assetId: string
-    }): EventInput {
+    }): DomainEventInput {
         return {
             workspaceId,
             entityType: DomainEntityType.ASSET,
@@ -194,7 +192,7 @@ export const domainEvents = {
         actorId: string
         categoryId: string
         name: string
-    }): EventInput {
+    }): DomainEventInput {
         return {
             workspaceId,
             entityType: DomainEntityType.ASSET_CATEGORY,
@@ -216,7 +214,7 @@ export const domainEvents = {
         actorId: string
         categoryId: string
         name: string
-    }): EventInput {
+    }): DomainEventInput {
         return {
             workspaceId,
             entityType: DomainEntityType.ASSET_CATEGORY,
@@ -236,7 +234,7 @@ export const domainEvents = {
         workspaceId: string
         actorId: string
         categoryId: string
-    }): EventInput {
+    }): DomainEventInput {
         return {
             workspaceId,
             entityType: DomainEntityType.ASSET_CATEGORY,
@@ -255,7 +253,7 @@ export const domainEvents = {
         workspaceId: string
         actorId: string
         workOrderId: string
-    }): EventInput {
+    }): DomainEventInput {
         return {
             workspaceId,
             entityType: DomainEntityType.WORK_ORDER,
@@ -282,7 +280,7 @@ export const domainEvents = {
         previousStatus: WorkOrderStatus
         newStatus: WorkOrderStatus
         assigneeId?: string
-    }): EventInput {
+    }): DomainEventInput {
         const eventByAction: Record<WorkOrderAction, DomainEventType> = {
             assign: DomainEventType.WORK_ORDER_ASSIGNED,
             start: DomainEventType.WORK_ORDER_STARTED,
@@ -321,7 +319,7 @@ export const domainEvents = {
         workspaceId: string
         actorId: string
         workOrderId: string
-    }): EventInput {
+    }): DomainEventInput {
         return {
             workspaceId,
             entityType: DomainEntityType.WORK_ORDER,
@@ -342,7 +340,7 @@ export const domainEvents = {
         actorId: string
         workOrderId: string
         message: string
-    }): EventInput {
+    }): DomainEventInput {
         return {
             workspaceId,
             entityType: DomainEntityType.WORK_ORDER,
@@ -365,7 +363,7 @@ export const domainEvents = {
         invitationId: string
         email: string
         role: Role
-    }): EventInput {
+    }): DomainEventInput {
         return {
             workspaceId,
             entityType: DomainEntityType.WORKSPACE_INVITATION,
@@ -384,7 +382,7 @@ export const domainEvents = {
         workspaceId: string
         actorId: string
         invitationId: string
-    }): EventInput {
+    }): DomainEventInput {
         return {
             workspaceId,
             entityType: DomainEntityType.WORKSPACE_INVITATION,

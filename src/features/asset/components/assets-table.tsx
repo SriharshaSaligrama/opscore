@@ -5,13 +5,17 @@ import { useState } from "react"
 import { Asset, Category } from "@/features/asset/asset-types"
 
 import {
-    Table,
     TableBody,
     TableCell,
     TableHead,
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
+import { DataTableShell } from "@/components/data-table/data-table-shell"
+import {
+    TableActionsCell,
+    TableActionsHead,
+} from "@/components/data-table/table-actions-cell"
 
 import { Button } from "@/components/ui/button"
 
@@ -63,18 +67,13 @@ export default function AssetsTable({
     }
 
     return (
-        <div className="border rounded-lg overflow-hidden">
-            <Table>
+        <DataTableShell>
                 <TableHeader>
                     <TableRow>
                         <TableHead>Name</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Category</TableHead>
-                        {canShowActions && (
-                            <TableHead className="text-right w-30">
-                                Actions
-                            </TableHead>
-                        )}
+                        {canShowActions && <TableActionsHead />}
                     </TableRow>
                 </TableHeader>
 
@@ -97,7 +96,7 @@ export default function AssetsTable({
                                 </TableCell>
 
                                 {canShowActions && (
-                                    <TableCell className="text-right space-x-2 flex items-center">
+                                    <TableActionsCell className="justify-start">
                                         {canUpdateAsset && (
                                             <>
                                                 <AssetStatusSelect
@@ -129,13 +128,12 @@ export default function AssetsTable({
                                                 </Button>
                                             </DeleteAssetDialog>
                                         )}
-                                    </TableCell>
+                                    </TableActionsCell>
                                 )}
                             </TableRow>
                         )
                     })}
                 </TableBody>
-            </Table>
-        </div>
+        </DataTableShell>
     )
 }

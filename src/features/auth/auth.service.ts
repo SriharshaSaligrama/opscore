@@ -1,10 +1,9 @@
 import bcrypt from "bcrypt"
-import { prisma } from "@/lib/prisma"
 import { Role } from "@prisma/client"
 import { ConflictError, UnauthorizedError } from "@/lib/errors"
-import { domainEventService } from "@/features/domain-events/domain-event.service"
 import { runWorkspaceMutation } from "@/lib/service-mutation"
 import { domainEvents } from "@/features/domain-events/domain-event.builders"
+import { authRepository } from "@/features/auth/auth.repository"
 
 type SafeUser = {
     id: string
@@ -35,9 +34,7 @@ type LoginResult = NoWorkspaceResult | SingleWorkspaceResult | MultipleWorkspace
 
 export const authService = {
     async signup(name: string, email: string, password: string) {
-        const existingUser = await prisma.user.findUnique({
-            where: { email }
-        })
+        const existingUser = await authRepository.findUserByEmail(email)
 
         if (existingUser) {
             throw new ConflictError("Email already exists")
@@ -64,32 +61,26 @@ export const authService = {
 
             return { user, workspace }
         }, {
-            event: ({ user, workspace }, db) => Promise.all([
-                domainEventService.record({
-                    db,
-                    ...domainEvents.workspaceCreated({
+            event: ({ user, workspace }) => [
+                domainEvents.workspaceCreated({
                         workspaceId: workspace.id,
                         actorId: user.id,
                         name: workspace.name,
                         source: "signup",
-                    }),
                 }),
-                domainEventService.record({
-                    db,
-                    ...domainEvents.memberAdded({
+                domainEvents.memberAdded({
                         workspaceId: workspace.id,
                         actorId: user.id,
                         userId: user.id,
                         role: Role.OWNER,
                         source: "signup",
-                    }),
                 }),
-            ]).then(() => undefined),
+            ],
         })
     },
 
     async login(email: string, password: string): Promise<LoginResult> {
-        const user = await prisma.user.findUnique({ where: { email } })
+        const user = await authRepository.findUserByEmail(email)
 
         if (!user) {
             throw new UnauthorizedError("Invalid credentials")
@@ -101,20 +92,15 @@ export const authService = {
             throw new UnauthorizedError("Invalid credentials")
         }
 
-        const memberships = await prisma.membership.findMany({
-            where: { userId: user.id },
-            include: { workspace: true }
-        })
+        const memberships = await authRepository.listUserMembershipWorkspaces(user.id)
 
         const expiresAt = new Date()
         expiresAt.setDate(expiresAt.getDate() + 7)
 
-        const session = await prisma.session.create({
-            data: {
-                userId: user.id,
-                expiresAt,
-                activeWorkspaceId: null
-            }
+        const session = await authRepository.createSession({
+            userId: user.id,
+            expiresAt,
+            activeWorkspaceId: null,
         })
 
         const safeUser: SafeUser = {
@@ -132,12 +118,7 @@ export const authService = {
         }
 
         if (memberships.length === 1) {
-            await prisma.session.update({
-                where: { id: session.id },
-                data: {
-                    activeWorkspaceId: memberships[0].workspaceId
-                }
-            })
+            await authRepository.setActiveWorkspace(session.id, memberships[0].workspaceId)
 
             return {
                 type: "SINGLE_WORKSPACE",
@@ -159,9 +140,7 @@ export const authService = {
     },
 
     async validateSession(sessionId: string) {
-        const session = await prisma.session.findUnique({
-            where: { id: sessionId }
-        })
+        const session = await authRepository.findSessionById(sessionId)
 
         if (!session) {
             throw new UnauthorizedError("Session not found")

@@ -1,4 +1,3 @@
-import { prisma } from "@/lib/prisma"
 import {
     BadRequestError,
     ConflictError,
@@ -8,7 +7,7 @@ import {
 import { getServiceContext } from "@/lib/service-context"
 import { Permission } from "@/features/authorization/permissions"
 import { authService } from "@/features/auth/auth.service"
-import { domainEventService } from "@/features/domain-events/domain-event.service"
+import { authRepository } from "@/features/auth/auth.repository"
 import { Role } from "@prisma/client"
 import { WORKSPACE_NAME_MAX_LENGTH } from "@/features/workspace/workspace.schemas"
 import { runWorkspaceMutation } from "@/lib/service-mutation"
@@ -35,10 +34,7 @@ export const workspaceService = {
         }
 
         // 3️⃣ Update session context
-        await prisma.session.update({
-            where: { id: sessionId },
-            data: { activeWorkspaceId: workspaceId }
-        })
+        await authRepository.setActiveWorkspace(sessionId, workspaceId)
 
         return {
             workspaceId: membership.workspace.id,
@@ -129,14 +125,11 @@ export const workspaceService = {
 
             return updatedWorkspace
         }, {
-            event: (_workspace, db) => domainEventService.record({
-                db,
-                ...domainEvents.workspaceRenamed({
+            event: () => domainEvents.workspaceRenamed({
                     workspaceId: ctx.membership.workspaceId,
                     actorId: ctx.membership.userId,
                     oldName: workspace.name,
                     newName: name,
-                }),
             }),
         })
     },
@@ -179,13 +172,10 @@ export const workspaceService = {
 
             return workspace
         }, {
-            event: (workspace, db) => domainEventService.record({
-                db,
-                ...domainEvents.workspaceCreated({
+            event: (workspace) => domainEvents.workspaceCreated({
                     workspaceId: workspace.id,
                     actorId: userId,
                     name: workspace.name,
-                }),
             }),
         })
 

@@ -1,10 +1,12 @@
 import { getServiceContext } from "@/lib/service-context"
 import { Permission } from "@/features/authorization/permissions"
-import { domainEventService } from "@/features/domain-events/domain-event.service"
 import { ensureWorkspaceEntity } from "@/lib/workspace-entity-guards"
 import { ASSET_NAME_MAX_LENGTH } from "@/features/asset/asset.schemas"
 import { domainEvents } from "@/features/domain-events/domain-event.builders"
-import { runWorkspaceMutation } from "@/lib/service-mutation"
+import {
+    runWorkspaceMutation,
+    runWorkspaceMutationWithContext,
+} from "@/lib/service-mutation"
 import { assetRepository } from "@/features/asset/asset.repository"
 import { assetCategoryRepository } from "@/features/asset-category/asset-category.repository"
 import {
@@ -25,12 +27,6 @@ export const assetService = {
         name: string
         categoryId: string
     }) {
-        const ctx = await getServiceContext(
-            userId,
-            workspaceId,
-            Permission.CREATE_ASSET
-        )
-
         name = name.trim()
 
         if (!name) {
@@ -41,51 +37,52 @@ export const assetService = {
             throw new BadRequestError("Asset name too long")
         }
 
-        const category = await assetCategoryRepository.findById(categoryId)
-
-        ensureWorkspaceEntity(category, ctx.membership.workspaceId, {
-            notFoundMessage: "Category not found",
-            invalidWorkspaceMessage: "Invalid category",
-            archivedMessage: "Cannot create asset in archived category",
-        })
-
-        const existing = await assetRepository.findActiveByName(
-            ctx.membership.workspaceId,
-            name
-        )
-
-        if (existing) {
-            throw new ConflictError("Asset already exists")
-        }
-
-        return runWorkspaceMutation(async (db) => {
-            const asset = await db.asset.create({
-                data: {
-                    name,
-                    categoryId,
-                    workspaceId: ctx.membership.workspaceId,
-                    createdBy: ctx.membership.userId,
-                },
-                include: {
-                    category: true,
-                },
-            })
-
-            return asset
-        }, {
+        return runWorkspaceMutationWithContext({
+            userId,
+            workspaceId,
+            permission: Permission.CREATE_ASSET,
             uniqueConflictMessage: "Asset already exists",
-            event: (asset, db) => domainEventService.record({
-                db,
-                ...domainEvents.assetCreated({
-                    workspaceId: ctx.membership.workspaceId,
-                    actorId: ctx.membership.userId,
-                    assetId: asset.id,
+            mutation: async (ctx, db) => {
+                const category = await assetCategoryRepository.findById(categoryId, db)
+
+                ensureWorkspaceEntity(category, ctx.membership.workspaceId, {
+                    notFoundMessage: "Category not found",
+                    invalidWorkspaceMessage: "Invalid category",
+                    archivedMessage: "Cannot create asset in archived category",
+                })
+
+                const existing = await assetRepository.findActiveByName(
+                    ctx.membership.workspaceId,
                     name,
-                    categoryId,
-                }),
+                    db
+                )
+
+                if (existing) {
+                    throw new ConflictError("Asset already exists")
+                }
+
+                return db.asset.create({
+                    data: {
+                        name,
+                        categoryId,
+                        workspaceId: ctx.membership.workspaceId,
+                        createdBy: ctx.membership.userId,
+                    },
+                    include: {
+                        category: true,
+                    },
+                })
+            },
+            event: (asset, ctx) => domainEvents.assetCreated({
+                workspaceId: ctx.membership.workspaceId,
+                actorId: ctx.membership.userId,
+                assetId: asset.id,
+                name,
+                categoryId,
             }),
         })
     },
+
 
     async listAssets({
         userId,
@@ -193,14 +190,11 @@ export const assetService = {
             return updatedAsset
         }, {
             uniqueConflictMessage: "Asset already exists",
-            event: (_asset, db) => domainEventService.record({
-                db,
-                ...domainEvents.assetUpdated({
+            event: () => domainEvents.assetUpdated({
                     workspaceId: ctx.membership.workspaceId,
                     actorId: ctx.membership.userId,
                     assetId,
                     metadata,
-                }),
             }),
         })
     },
@@ -243,13 +237,10 @@ export const assetService = {
 
             return updatedAsset
         }, {
-            event: (_asset, db) => domainEventService.record({
-                db,
-                ...domainEvents.assetArchived({
+            event: () => domainEvents.assetArchived({
                     workspaceId: ctx.membership.workspaceId,
                     actorId: ctx.membership.userId,
                     assetId,
-                }),
             }),
         })
     },

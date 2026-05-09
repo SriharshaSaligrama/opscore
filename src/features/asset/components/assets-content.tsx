@@ -1,6 +1,6 @@
 import { getWorkspaceContext } from "@/features/workspace/workspace.context"
-import { assetService } from "@/features/asset/asset.service"
-import { assetCategoryService } from "@/features/asset-category/asset-category.service"
+import { assetQueries } from "@/features/asset/asset.queries"
+import { assetCategoryQueries } from "@/features/asset-category/asset-category.queries"
 
 import AssetsContentClient from "./assets-content-client"
 
@@ -13,12 +13,12 @@ export default async function AssetsContent() {
         canArchiveAsset,
     } = await getWorkspaceContext()
 
-    const assets = await assetService.listAssets({
+    const assets = await assetQueries.listWorkspaceAssets({
         userId: session.user.id,
         workspaceId: workspace.id,
     })
 
-    const categories = await assetCategoryService.listCategories({
+    const categories = await assetCategoryQueries.listWorkspaceCategories({
         userId: session.user.id,
         workspaceId: workspace.id,
     })

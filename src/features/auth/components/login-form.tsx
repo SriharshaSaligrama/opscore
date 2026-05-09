@@ -4,8 +4,7 @@ import { useActionState } from "react"
 import { loginAction } from "@/features/auth/actions/login.action"
 import { Input } from "@/components/ui/input"
 import AuthShell from "./auth-shell"
-import { ActionError } from "@/components/forms/action-error"
-import { ActionSubmitButton } from "@/components/forms/action-submit-button"
+import { ActionForm } from "@/components/forms/action-form"
 import { ActionState } from "@/lib/action-handler"
 
 const initialState: ActionState = {
@@ -21,19 +20,16 @@ export default function LoginForm() {
             title="Welcome back"
             subtitle="Login to your workspace"
         >
-            <form action={formAction} className="space-y-4">
+            <ActionForm
+                action={formAction}
+                state={state}
+                pending={pending}
+                label="Login"
+                pendingLabel="Logging in..."
+            >
                 <Input name="email" placeholder="you@example.com" />
                 <Input name="password" type="password" placeholder="Password" />
-
-                <ActionError state={state} />
-
-                <ActionSubmitButton
-                    pending={pending}
-                    label="Login"
-                    pendingLabel="Logging in..."
-                    className="w-full"
-                />
-            </form>
+            </ActionForm>
 
             <p className="text-sm text-center text-muted-foreground">
                 Don’t have an account?{" "}

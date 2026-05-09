@@ -1,12 +1,6 @@
-import { prisma } from "@/lib/prisma"
-
 import { WorkOrderPermissions } from "./work-order.permissions"
 
-import {
-    getWorkOrderOrThrow,
-    getAssetOrThrow,
-    ensureUserInWorkspace,
-} from "./work-order.repository"
+import { workOrderRepository } from "./work-order.repository"
 
 import {
     executeTransition,
@@ -16,7 +10,6 @@ import {
 import { getServiceContext } from "@/lib/service-context"
 import { BadRequestError } from "@/lib/errors"
 
-import { domainEventService } from "@/features/domain-events/domain-event.service"
 import { domainEvents } from "@/features/domain-events/domain-event.builders"
 import { runWorkspaceMutation } from "@/lib/service-mutation"
 
@@ -39,10 +32,15 @@ export const workOrderService = {
             const ctx = await getServiceContext(
                 userId,
                 workspaceId,
-                WorkOrderPermissions.create
+                WorkOrderPermissions.create,
+                db
             )
 
-            await getAssetOrThrow(db, assetId, ctx.membership.workspaceId)
+            await workOrderRepository.assertAssetActiveInWorkspace(
+                assetId,
+                ctx.membership.workspaceId,
+                db
+            )
 
             const workOrder = await db.workOrder.create({
                 data: {
@@ -56,13 +54,10 @@ export const workOrderService = {
 
             return workOrder
         }, {
-            event: (workOrder, db) => domainEventService.record({
-                db,
-                ...domainEvents.workOrderCreated({
+            event: (workOrder) => domainEvents.workOrderCreated({
                     workspaceId,
                     actorId: userId,
                     workOrderId: workOrder.id,
-                }),
             }),
         })
     },
@@ -83,13 +78,15 @@ export const workOrderService = {
         return runWorkspaceMutation(async (db) => {
             const ctx = await getServiceContext(
                 userId,
-                workspaceId
+                workspaceId,
+                undefined,
+                db
             )
 
-            const workOrder = await getWorkOrderOrThrow(
-                db,
+            const workOrder = await workOrderRepository.assertActiveInWorkspace(
                 workOrderId,
-                ctx.membership.workspaceId
+                ctx.membership.workspaceId,
+                db
             )
 
             if (action === "assign") {
@@ -98,10 +95,10 @@ export const workOrderService = {
                     throw new BadRequestError("assigneeId required")
                 }
 
-                await ensureUserInWorkspace(
-                    db,
+                await workOrderRepository.ensureUserInWorkspace(
                     assigneeId,
-                    ctx.membership.workspaceId
+                    ctx.membership.workspaceId,
+                    db
                 )
             }
 
@@ -127,9 +124,7 @@ export const workOrderService = {
                 newStatus: nextStatus,
             }
         }, {
-            event: ({ previousStatus, newStatus }, db) => domainEventService.record({
-                db,
-                ...domainEvents.workOrderAction({
+            event: ({ previousStatus, newStatus }) => domainEvents.workOrderAction({
                     workspaceId,
                     actorId: userId,
                     workOrderId,
@@ -137,7 +132,6 @@ export const workOrderService = {
                     previousStatus,
                     newStatus,
                     assigneeId,
-                }),
             }),
         }).then(({ updated }) => updated)
     },
@@ -152,15 +146,7 @@ export const workOrderService = {
 
         const ctx = await getServiceContext(userId, workspaceId)
 
-        return prisma.workOrder.findMany({
-            where: {
-                workspaceId: ctx.membership.workspaceId,
-                isDeleted: false,
-            },
-            orderBy: {
-                createdAt: "asc",
-            },
-        })
+        return workOrderRepository.listActive(ctx.membership.workspaceId)
     },
 
     async archiveWorkOrder({
@@ -176,13 +162,14 @@ export const workOrderService = {
             const ctx = await getServiceContext(
                 userId,
                 workspaceId,
-                WorkOrderPermissions.update
+                WorkOrderPermissions.update,
+                db
             )
 
-            const workOrder = await getWorkOrderOrThrow(
-                db,
+            const workOrder = await workOrderRepository.assertActiveInWorkspace(
                 workOrderId,
-                ctx.membership.workspaceId
+                ctx.membership.workspaceId,
+                db
             )
 
             if (workOrder.isDeleted) {
@@ -196,16 +183,13 @@ export const workOrderService = {
 
             return { workOrder: updated, archived: true }
         }, {
-            event: ({ archived }, db) => archived
-                ? domainEventService.record({
-                    db,
-                    ...domainEvents.workOrderArchived({
+            event: ({ archived }) => archived
+                ? domainEvents.workOrderArchived({
                         workspaceId,
                         actorId: userId,
                         workOrderId,
-                    }),
                 })
-                : Promise.resolve(),
+                : undefined,
         }).then(({ workOrder }) => workOrder)
     },
 
@@ -223,24 +207,26 @@ export const workOrderService = {
 
         return runWorkspaceMutation(async (db) => {
 
-            const ctx = await getServiceContext(userId, workspaceId)
+            const ctx = await getServiceContext(userId, workspaceId, undefined, db)
 
-            await getWorkOrderOrThrow(
-                db,
+            await workOrderRepository.assertActiveInWorkspace(
                 workOrderId,
-                ctx.membership.workspaceId
+                ctx.membership.workspaceId,
+                db
             )
 
-            return domainEventService.record({
-                db,
-                ...domainEvents.commentAdded({
-                    workspaceId: ctx.membership.workspaceId,
-                    actorId: ctx.membership.userId,
-                    workOrderId,
-                    message,
-                }),
-            })
+            return {
+                workspaceId: ctx.membership.workspaceId,
+                actorId: ctx.membership.userId,
+            }
 
+        }, {
+            event: ({ workspaceId, actorId }) => domainEvents.commentAdded({
+                workspaceId,
+                actorId,
+                workOrderId,
+                message,
+            }),
         })
     }
 }
