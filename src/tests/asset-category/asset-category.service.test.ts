@@ -98,7 +98,7 @@ describe("assetCategoryService.createCategory", () => {
                 workspaceId: workspace.id,
                 name: "A".repeat(31),
             })
-        ).rejects.toThrow("Category name too long")
+        ).rejects.toThrow("Category name too long (max 30 characters)")
     })
 
     it("rejects insufficient permission (viewer)", async () => {

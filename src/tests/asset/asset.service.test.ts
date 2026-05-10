@@ -217,7 +217,7 @@ describe("assetService.createAsset", () => {
                 name: "A".repeat(31),
                 categoryId: category.id,
             })
-        ).rejects.toThrow("Asset name too long")
+        ).rejects.toThrow("Asset name too long (max 30 characters)")
     })
 
     it("allows recreating asset name after archive", async () => {
