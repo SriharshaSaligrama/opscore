@@ -1,5 +1,5 @@
-import PageSkeleton from "@/components/layout/page-skeleton"
+import { CollectionSkeleton } from "@/components/layout/collection-skeleton"
 
 export default function AssetsLoading() {
-    return <PageSkeleton rowCount={3} actionCount={1} />
+    return <CollectionSkeleton rows={4} actions={1} />
 }

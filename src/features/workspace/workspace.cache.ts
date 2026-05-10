@@ -1,17 +1,10 @@
-import { revalidatePath } from "next/cache"
-
-export function invalidateWorkspaceSelection() {
-    revalidatePath("/select-workspace")
-}
-
-export function invalidateWorkspaceSettings() {
-    revalidatePath("/settings")
-}
-
-export function invalidateWorkspaceDashboard() {
-    revalidatePath("/dashboard")
-}
-
-export function invalidateWorkspaceLayout() {
-    revalidatePath("/", "layout")
-}
+/**
+ * Re-exports the centralized cache invalidation helpers for the workspace feature.
+ * All revalidatePath calls are now owned by src/lib/cache.ts.
+ */
+export {
+    invalidateWorkspaceSelection,
+    invalidateWorkspaceSettings,
+    invalidateWorkspaceDashboard,
+    invalidateWorkspaceLayout,
+} from "@/lib/cache"

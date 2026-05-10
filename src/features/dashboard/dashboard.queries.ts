@@ -1,15 +1,45 @@
+/**
+ * Dashboard queries.
+ *
+ * All read paths go through getServiceContext so membership is validated
+ * before any data is returned. The dashboard repository provides the raw
+ * counting methods; this layer enforces auth.
+ */
+
+import { getServiceContext } from "@/lib/service-context"
 import { dashboardRepository } from "@/features/dashboard/dashboard.repository"
 
 export const dashboardQueries = {
-    getWorkOrderCount(workspaceId: string) {
-        return dashboardRepository.countActiveWorkOrders(workspaceId)
+    async getWorkOrderCount({
+        userId,
+        workspaceId,
+    }: {
+        userId: string
+        workspaceId: string
+    }) {
+        const ctx = await getServiceContext(userId, workspaceId)
+        return dashboardRepository.countActiveWorkOrders(ctx.membership.workspaceId)
     },
 
-    getAssetCount(workspaceId: string) {
-        return dashboardRepository.countActiveAssets(workspaceId)
+    async getAssetCount({
+        userId,
+        workspaceId,
+    }: {
+        userId: string
+        workspaceId: string
+    }) {
+        const ctx = await getServiceContext(userId, workspaceId)
+        return dashboardRepository.countActiveAssets(ctx.membership.workspaceId)
     },
 
-    getMemberCount(workspaceId: string) {
-        return dashboardRepository.countMembers(workspaceId)
+    async getMemberCount({
+        userId,
+        workspaceId,
+    }: {
+        userId: string
+        workspaceId: string
+    }) {
+        const ctx = await getServiceContext(userId, workspaceId)
+        return dashboardRepository.countMembers(ctx.membership.workspaceId)
     },
 }

@@ -1,3 +1,11 @@
+/**
+ * Workspace context.
+ *
+ * Capabilities are derived by spreading getWorkspaceCapabilities() directly
+ * into the returned object. Adding a new permission to capabilities.ts
+ * automatically makes it available here without a manual wiring step.
+ */
+
 import { workspaceService } from "./workspace.service"
 import { cache } from "react"
 import { redirect } from "next/navigation"
@@ -29,11 +37,16 @@ export const getWorkspaceContext = cache(async function () {
         workspace.id
     )
 
+    // Spread the full capabilities object — any new permission added to
+    // getWorkspaceCapabilities() is automatically available to all consumers.
+    const capabilities = getWorkspaceCapabilities(membership?.role)
+
     return {
         session,
         workspace,
         membershipWorkspaces,
         user,
-        ...getWorkspaceCapabilities(membership?.role),
+        membership,
+        ...capabilities,
     }
 })

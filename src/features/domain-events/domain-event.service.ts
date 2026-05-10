@@ -1,30 +1,42 @@
+/**
+ * Domain event service.
+ *
+ * DomainEventInput is now generically typed: the metadata field is constrained
+ * to the shape declared in DomainEventMetadataMap for the given event type.
+ * This ensures builder functions cannot pass structurally-wrong metadata.
+ */
+
 import { DB } from "@/lib/db"
 import { prisma } from "@/lib/prisma"
-import { DomainEventType } from "./domain-event.types"
-import { DomainEntityType, Prisma } from "@prisma/client"
+import { DomainEntityType } from "@prisma/client"
+import { DomainEventType, DomainEventMetadataMap } from "./domain-event.types"
 
-export type DomainEventRecordInput = {
-    db?: DB
+// ---------------------------------------------------------------------------
+// Typed event input
+// ---------------------------------------------------------------------------
+
+export type DomainEventInput<T extends DomainEventType = DomainEventType> = {
     workspaceId: string
     entityType: DomainEntityType
     entityId: string
     actorId: string
-    type: DomainEventType
+    type: T
     message?: string
-    metadata?: Prisma.InputJsonValue
+    metadata?: DomainEventMetadataMap[T]
 }
 
-export type DomainEventInput = Omit<DomainEventRecordInput, "db">
+// ---------------------------------------------------------------------------
+// Service
+// ---------------------------------------------------------------------------
 
 export function recordDomainEvent(db: DB, event: DomainEventInput) {
-    return domainEventService.record({
-        db,
-        ...event,
-    })
+    return domainEventService.record({ db, ...event })
 }
 
+type DomainEventRecordInput = DomainEventInput & { db?: DB }
+
 export const domainEventService = {
-    async record({
+    async record<T extends DomainEventType>({
         db = prisma,
         workspaceId,
         entityType,
@@ -33,8 +45,7 @@ export const domainEventService = {
         type,
         message,
         metadata,
-    }: DomainEventRecordInput) {
-
+    }: DomainEventRecordInput & { type: T; metadata?: DomainEventMetadataMap[T] }) {
         return db.domainEvent.create({
             data: {
                 workspaceId,
@@ -43,8 +54,9 @@ export const domainEventService = {
                 actorId,
                 type,
                 message,
+                // Prisma stores metadata as Json; the typed metadata is always JSON-serialisable
                 metadata,
-            }
+            },
         })
     },
 
@@ -58,22 +70,13 @@ export const domainEventService = {
         entityId: string
     }) {
         return prisma.domainEvent.findMany({
-            where: {
-                workspaceId,
-                entityType,
-                entityId,
-            },
+            where: { workspaceId, entityType, entityId },
             include: {
                 actor: {
-                    select: {
-                        id: true,
-                        name: true,
-                    },
+                    select: { id: true, name: true },
                 },
             },
-            orderBy: {
-                createdAt: "asc",
-            },
+            orderBy: { createdAt: "asc" },
         })
-    }
+    },
 }

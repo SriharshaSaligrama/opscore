@@ -2,6 +2,7 @@ import { getServiceContext } from "@/lib/service-context"
 import { Permission } from "@/features/authorization/permissions"
 import { ensureWorkspaceEntity } from "@/lib/workspace-entity-guards"
 import { ASSET_NAME_MAX_LENGTH } from "@/features/asset/asset.schemas"
+import { validateEntityName } from "@/lib/name-validation"
 import { domainEvents } from "@/features/domain-events/domain-event.builders"
 import {
     runWorkspaceMutation,
@@ -9,10 +10,7 @@ import {
 } from "@/lib/service-mutation"
 import { assetRepository } from "@/features/asset/asset.repository"
 import { assetCategoryRepository } from "@/features/asset-category/asset-category.repository"
-import {
-    BadRequestError,
-    ConflictError,
-} from "@/lib/errors"
+import { BadRequestError, ConflictError } from "@/lib/errors"
 import { AssetStatus } from "@prisma/client"
 
 export const assetService = {
@@ -28,14 +26,7 @@ export const assetService = {
         categoryId: string
     }) {
         name = name.trim()
-
-        if (!name) {
-            throw new BadRequestError("Asset name is required")
-        }
-
-        if (name.length > ASSET_NAME_MAX_LENGTH) {
-            throw new BadRequestError("Asset name too long")
-        }
+        validateEntityName(name, { label: "Asset", max: ASSET_NAME_MAX_LENGTH })
 
         return runWorkspaceMutationWithContext({
             userId,
@@ -68,21 +59,19 @@ export const assetService = {
                         workspaceId: ctx.membership.workspaceId,
                         createdBy: ctx.membership.userId,
                     },
-                    include: {
-                        category: true,
-                    },
+                    include: { category: true },
                 })
             },
-            event: (asset, ctx) => domainEvents.assetCreated({
-                workspaceId: ctx.membership.workspaceId,
-                actorId: ctx.membership.userId,
-                assetId: asset.id,
-                name,
-                categoryId,
-            }),
+            event: (asset, ctx) =>
+                domainEvents.assetCreated({
+                    workspaceId: ctx.membership.workspaceId,
+                    actorId: ctx.membership.userId,
+                    assetId: asset.id,
+                    name,
+                    categoryId,
+                }),
         })
     },
-
 
     async listAssets({
         userId,
@@ -92,7 +81,6 @@ export const assetService = {
         workspaceId: string
     }) {
         const ctx = await getServiceContext(userId, workspaceId)
-
         return assetRepository.listActive(ctx.membership.workspaceId)
     },
 
@@ -111,11 +99,7 @@ export const assetService = {
         categoryId?: string
         status?: AssetStatus
     }) {
-        const ctx = await getServiceContext(
-            userId,
-            workspaceId,
-            Permission.UPDATE_ASSET
-        )
+        const ctx = await getServiceContext(userId, workspaceId, Permission.UPDATE_ASSET)
 
         const asset = await assetRepository.findById(assetId)
 
@@ -129,14 +113,7 @@ export const assetService = {
 
         if (name !== undefined) {
             name = name.trim()
-
-            if (!name) {
-                throw new BadRequestError("Asset name cannot be empty")
-            }
-
-            if (name.length > ASSET_NAME_MAX_LENGTH) {
-                throw new BadRequestError("Asset name too long")
-            }
+            validateEntityName(name, { label: "Asset", max: ASSET_NAME_MAX_LENGTH })
 
             if (name !== existingAsset.name) {
                 shouldCheckNameConflict = true
@@ -154,21 +131,19 @@ export const assetService = {
         }
 
         if (shouldCheckNameConflict) {
-            const exisiting = await assetRepository.findActiveByNameExcluding(
+            const conflict = await assetRepository.findActiveByNameExcluding(
                 ctx.membership.workspaceId,
                 name!,
                 assetId
             )
 
-            if (exisiting) {
+            if (conflict) {
                 throw new ConflictError("Asset already exists")
             }
         }
 
-        if (status !== undefined) {
-            if (!Object.values(AssetStatus).includes(status)) {
-                throw new BadRequestError("Invalid asset status")
-            }
+        if (status !== undefined && !Object.values(AssetStatus).includes(status)) {
+            throw new BadRequestError("Invalid asset status")
         }
 
         const metadata = {
@@ -177,26 +152,24 @@ export const assetService = {
             ...(status !== undefined && { status }),
         }
 
-        return runWorkspaceMutation(async (db) => {
-            const updatedAsset = await db.asset.update({
-                where: { id: assetId },
-                data: {
-                    ...(name !== undefined && { name }),
-                    ...(categoryId !== undefined && { categoryId }),
-                    ...(status !== undefined && { status }),
-                },
-            })
-
-            return updatedAsset
-        }, {
-            uniqueConflictMessage: "Asset already exists",
-            event: () => domainEvents.assetUpdated({
-                    workspaceId: ctx.membership.workspaceId,
-                    actorId: ctx.membership.userId,
-                    assetId,
-                    metadata,
-            }),
-        })
+        return runWorkspaceMutation(
+            async (db) => {
+                return db.asset.update({
+                    where: { id: assetId },
+                    data: metadata,
+                })
+            },
+            {
+                uniqueConflictMessage: "Asset already exists",
+                event: () =>
+                    domainEvents.assetUpdated({
+                        workspaceId: ctx.membership.workspaceId,
+                        actorId: ctx.membership.userId,
+                        assetId,
+                        metadata,
+                    }),
+            }
+        )
     },
 
     async archiveAsset({
@@ -208,11 +181,7 @@ export const assetService = {
         workspaceId: string
         assetId: string
     }) {
-        const ctx = await getServiceContext(
-            userId,
-            workspaceId,
-            Permission.ARCHIVE_ASSET
-        )
+        const ctx = await getServiceContext(userId, workspaceId, Permission.ARCHIVE_ASSET)
 
         const asset = await assetRepository.findByIdWithActiveWorkOrders(assetId)
 
@@ -229,19 +198,16 @@ export const assetService = {
             )
         }
 
-        return runWorkspaceMutation(async (db) => {
-            const updatedAsset = await db.asset.update({
-                where: { id: assetId },
-                data: { isDeleted: true },
-            })
-
-            return updatedAsset
-        }, {
-            event: () => domainEvents.assetArchived({
-                    workspaceId: ctx.membership.workspaceId,
-                    actorId: ctx.membership.userId,
-                    assetId,
-            }),
-        })
+        return runWorkspaceMutation(
+            async (db) => assetRepository.softDelete(assetId, db),
+            {
+                event: () =>
+                    domainEvents.assetArchived({
+                        workspaceId: ctx.membership.workspaceId,
+                        actorId: ctx.membership.userId,
+                        assetId,
+                    }),
+            }
+        )
     },
 }

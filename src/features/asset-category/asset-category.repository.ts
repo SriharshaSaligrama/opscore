@@ -1,14 +1,16 @@
+import { AssetCategory } from "@prisma/client"
 import { DB } from "@/lib/db"
 import { prisma } from "@/lib/prisma"
-import { activeInWorkspace, caseInsensitiveName } from "@/lib/workspace-repository"
+import { createWorkspaceRepository } from "@/lib/workspace-repository"
+
+const base = createWorkspaceRepository<AssetCategory>(
+    (db: DB) => db.assetCategory
+)
 
 export const assetCategoryRepository = {
-    findById(categoryId: string, db: DB = prisma) {
-        return db.assetCategory.findUnique({
-            where: { id: categoryId },
-        })
-    },
+    ...base,
 
+    /** Find a category with any non-deleted assets (for archive guard). */
     findByIdWithActiveAssets(categoryId: string, db: DB = prisma) {
         return db.assetCategory.findUnique({
             where: { id: categoryId },
@@ -18,37 +20,6 @@ export const assetCategoryRepository = {
                     select: { id: true },
                 },
             },
-        })
-    },
-
-    findActiveByName(workspaceId: string, name: string, db: DB = prisma) {
-        return db.assetCategory.findFirst({
-            where: {
-                ...activeInWorkspace(workspaceId),
-                name: caseInsensitiveName(name),
-            },
-        })
-    },
-
-    findActiveByNameExcluding(
-        workspaceId: string,
-        name: string,
-        categoryId: string,
-        db: DB = prisma
-    ) {
-        return db.assetCategory.findFirst({
-            where: {
-                ...activeInWorkspace(workspaceId),
-                name: caseInsensitiveName(name),
-                NOT: { id: categoryId },
-            },
-        })
-    },
-
-    listActive(workspaceId: string, db: DB = prisma) {
-        return db.assetCategory.findMany({
-            where: activeInWorkspace(workspaceId),
-            orderBy: { createdAt: "asc" },
         })
     },
 }
